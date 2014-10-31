@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>PALFA Coincidence Viewer</title>
+        <link rel="stylesheet" type="text/css" href="qtip/jquery.qtip.min.css">
+        <script type="text/javascript" src="jquery/jquery-2.1.1.min.js"></script>
+        <script type="text/javascript" src="d3/d3.min.js"></script>
+        <script type="text/javascript" src="qtip/jquery.qtip.min.js"></script>
+        <style type="text/css">
+            p {
+                font-family: "Arial", sans-serif;
+                font-size: 10pt;
+                color: black;
+                margin-top: 0;
+                margin-bottom: 0;
+            }
+            
+            p.propList {
+                height: 15px;
+            }
+            
+            p.beamListItem {
+                font-size: 13pt;
+                font-weight: bold;
+                padding-left: 8px;
+                height: 20px;
+            }
+            
+            p#loadingText {
+                font-size: 40pt;
+                position: absolute;
+                padding-top: 250px;
+                padding-left: 300px;
+                z-index: -1;
+            }
+            
+            p#groupNumber {
+                font-size: 11pt;
+            }
+            
+            p#beamsPlotInstructions {
+                font-size: 8pt;
+                padding-top: 3px;
+                width: 170px;
+            }
+            
+            div {
+                font-family: "Arial", sans-serif;
+                font-size: 10pt;
+                display: inline-block;
+                float: left;
+                position: relative;
+            }
+            
+            div.ratingBox {
+                width: 15px;
+                height: 15px;
+                margin: 3px;
+                padding: 1px;
+                border-style: solid;
+                border-width: 1px;
+                border-color: white;
+                font-family: "Arial", sans-serif;
+                font-size: 13px;
+                text-align: center;
+            }
+            
+            div.ratingBox:hover {
+                border-color: rgb(200, 200, 200);
+            }
+            
+            div.ratingBoxSelected {
+                border-color: black;
+            }
+            
+            div.ratingBoxSelected:hover {
+                border-color: black;
+            }
+            
+            div#groupCount {
+                text-align: center;
+            }
+            
+            div#beamsPlot {
+                width: 168px;
+                height: 170px;
+                border-style: solid;
+                border-width: 1px;
+                border-color: rgb(220,220,220);
+            }
+            
+            div#beamsList {
+                width: 170px;
+                height: 220px;
+                /*padding-top: 8px;*/
+            }
+            
+            div#noShowsList {
+                /*padding-right: 1px;*/
+                width: 170px;
+                padding-bottom: 4px;
+                /*height: 220px;*/
+            }
+            
+            div.noShowsListItem {
+                margin-left: 1px;
+                margin-bottom: 1px;
+                height: 9px;
+                width: 9px;
+            }
+            
+            div#propertiesList {
+                width: 154px;
+                height: 120px;
+                padding: 8px;
+                margin-bottom: 10px;
+                background-color: rgb(210,225,240);
+                border-radius: 5px;
+            }
+            
+            select {
+                width: 160px;
+                font-size: 10pt;
+            }
+            
+            input.queryValue {
+                width: 80px;
+                font-size: 10pt;
+            }
+            
+            text#questionMark {
+                font-family: "Arial", sans-serif;
+                font-size: 35px;
+                font-weight: bold;
+            }
+            
+            circle.qMarkHover {
+                fill: rgb(100, 200, 150);
+            }
+            
+            circle.noshow {
+                fill: rgba(255, 200, 50, 0.3);
+            }
+            
+            circle.noshowSelected {
+                fill: rgba(255, 100, 50, 1.0);
+            }
+            
+            .noTextSelect {
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                -khtml-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+                cursor: default;
+            }
+            
+        </style>
+    </head>
+    <body>
+        <div id="container" style="width:950px; height:600px;">
+            <div id="topBar" style="width:900px; height:50px;">
+                <div id="queryForm" style="width:900px; height:50px;">
+                    <div id="queryFormLeft" style="width:550px; height:50px;">
+                        <div id="queryFormLeftUpper" style="width:550px; height:25px;">
+                            <p>
+                                <select id="querySelect">
+                                    <option value="period">Shortest Period (ms)</option>
+                                    <option value="sigma">Highest Sigma</option>
+                                    <option value="ncands">Number of Candidates</option>
+                                </select>
+                                between
+                                <input type="text" id="lowValue" class="queryValue">
+                                and
+                                <input type="text" id="highValue" class="queryValue">
+                                <input type="button" value="Submit Query"
+                                    id="submitButton" onclick="buttonClick();">
+                            </p>
+                        </div>
+                        <div id="queryFormLeftLower" style="width:550px; height:25px;">
+                            <p>
+                                Only load groups rated
+                                0<input type="checkbox" id="check0">
+                                1<input type="checkbox" id="check1">
+                                2<input type="checkbox" id="check2">
+                                3<input type="checkbox" id="check3">
+                                4<input type="checkbox" id="check4">
+                                by <span id="checkboxName">current user</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div id="queryFormMiddle" style="width:300px; height:50px;">
+                        <div id="queryFormMiddleUpper" style="width:300px; height:25px;">
+                            <p id="groupRating" style="padding-left:2px;
+                                background-color:rgb(220,220,220);">
+                                <select id="userSelect" onchange="selectName();" style="width:110px;">
+                                    <option value="select">Select user</option>
+                                    <option value="newuser">NEW USER...</option>
+                                </select>
+                                <span id="rating"></span>
+                            </p>
+                        </div>                        
+                        <div id="queryFormMiddleLower" style="width:300px; height:25px;">
+                            <div style="width:174px; height:17px; padding-top:4px;padding-bottom:4px;
+                                padding-right:4px; text-align:right;">Group rating:</div>
+                            <div id="ratingBox0" class="ratingBox noTextSelect"
+                                style="background-color:rgb(220,220,220);">0</div>
+                            <div id="ratingBox1" class="ratingBox noTextSelect"
+                                style="background-color:rgb(180,255,180);">1</div>
+                            <div id="ratingBox2" class="ratingBox noTextSelect"
+                                style="background-color:rgb(255,255,150);">2</div>
+                            <div id="ratingBox3" class="ratingBox noTextSelect"
+                                style="background-color:rgb(180,220,255);">3</div>
+                            <div id="ratingBox4" class="ratingBox noTextSelect"
+                                style="background-color:rgb(255,220,180); margin-right:0;">4</div>
+                        </div>
+                    </div>
+                    <div id="queryFormRight" style="width:50px; height:50px;">
+                        <svg class="noTextSelect" width=50 height=50>
+                            <circle id="qMarkCircle" cx=25 cy=25 r=20 fill="rgb(100, 100, 100)"></circle>
+                            <text id="questionMark" x=14 y=38 fill="white"
+                                style="pointer-events:none;">?</text>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div id="leftColumn" style="width:730px; height:550px;">
+                <div id="prepfoldImage" style="width:730px; height:550px;">
+                    <p id="loadingText">Loading...</p>
+                </div>
+            </div>
+            <div id="rightColumn" style="width:170px; height:550px;">
+                <div id="propertiesList"></div>
+                <div id="groupCount" style="width:170px; height:30px;"></div>
+                <div id="beamsPlot"></div>
+                <div id="instructions" style="width:170px; height:20px;">
+                    <p id="beamsPlotInstructions">Click box to change zoom level</p>
+                </div>
+                <div id="noShowsList"></div>
+                <div id="beamsList"></div>
+            </div>
+        </div>
+        
+        <script type="text/javascript">
+            var dataset = [];
+            //var noshows = [];
+            var usernames;
+            var nearbyPulsars = [];
+            var currentIndex = 0;
+            var currentSelection = 0;
+            var currentUser = null;
+            var baseXY = {};
+            var zoomLevel = 1;
+            var extentMax;
+            var beamScale;
+            var groupInfo;
+            var groupNoShows;
+            var baseURL = "http://palfa3.physics.mcgill.ca/palfa3-apps/candidate/images/";
+            var beamRadiusArcmin = 0.5*3.35;
+            var images = new Array();
+            
+            // these values are for the SVG beams
+            var w = 168;
+            var h = 168;
+            var svg_padding = 10;
+            var margin = 0;
+            
+            var img_div = d3.select("body").select("div#prepfoldImage");
+            img_div.append("img");
+            
+            var svg_div = d3.select("body")
+                .select("div#beamsPlot")
+                .append("svg")
+                .attr("width", w)
+                .attr("height", h)
+                .style("margin", margin)
+                .on("click", function() { switchZoomLevel(); });
+                
+            var beamlist_div = d3.select("body").select("div#beamsList");
+            
+            var noShowsList_div = d3.select("body").select("div#noShowsList");
+            
+            var properties_div = d3.select("body").select("div#propertiesList");
+            properties_div.append("p").attr("id", "mjd").classed("propList", true);
+            properties_div.append("p").attr("id", "period").classed("propList", true);
+            properties_div.append("p").attr("id", "dm").classed("propList", true);
+            properties_div.append("p").attr("id", "ra_deg").classed("propList", true);
+            properties_div.append("p").attr("id", "dec_deg").classed("propList", true);
+            properties_div.append("p").attr("id", "header_id").classed("propList", true);
+            properties_div.append("p").attr("id", "cand_id").classed("propList", true);
+            properties_div.append("p").attr("id", "sigma").classed("propList", true);
+                        
+            var groupCount = d3.select("body").select("div#groupCount")
+            groupCount.append("img")
+                .style("position", "absolute")
+                .style("bottom", "13px")
+                .style("left", "12px")
+                .attr("src", "back-button.png")
+                .on("click", function() { loadGroup(currentIndex-1); });
+            groupCount.append("p")
+                .attr("id", "groupNumber")
+                .text(function() {
+                    return currentIndex+1 + " of " + dataset.length;
+                });
+            groupCount.append("img")
+                .style("position", "absolute")
+                .style("bottom", "13px")
+                .style("right", "12px")
+                .attr("src", "forward-button.png")
+                .on("click", function() { loadGroup(currentIndex+1); });
+            
+            var userSelect = d3.select("body").select("select#userSelect");
+            d3.json("getusers.php", function(data) {
+                usernames = data;
+                for (ii = 0; ii < usernames.length; ii++) {
+                    userSelect.append("option")
+                        .attr("value", usernames[ii])
+                        .text(usernames[ii]);
+                }
+            });
+            
+            var sigmaScale = d3.scale.linear()
+                .domain([0, 32])
+                .rangeRound([0, 255])
+                .clamp(true);
+            
+            var buttonClick = function() {
+                var queryParams = {};
+                var queryType = document.getElementById("querySelect").value;
+                var lowval = document.getElementById("lowValue").value;
+                var highval = document.getElementById("highValue").value;
+                if (queryType == "period") {
+                    if (lowval.length > 0) { queryParams["p_min"] = lowval / 1000; }
+                    if (highval.length > 0) { queryParams["p_max"] = highval / 1000; }
+                } else if (queryType == "sigma") {
+                    if (lowval.length > 0) { queryParams["sigma_min"] = lowval; }
+                    if (highval.length > 0) { queryParams["sigma_max"] = highval; }
+                } else if (queryType == "ncands") {
+                    if (lowval.length > 0) { queryParams["ncands_min"] = lowval; }
+                    if (highval.length > 0) { queryParams["ncands_max"] = highval; }
+                }
+                if (currentUser != "select" && currentUser != null) {
+                    if (document.getElementById("check0").checked) queryParams["check0"] = currentUser;
+                    if (document.getElementById("check1").checked) queryParams["check1"] = currentUser;
+                    if (document.getElementById("check2").checked) queryParams["check2"] = currentUser;
+                    if (document.getElementById("check3").checked) queryParams["check3"] = currentUser;
+                    if (document.getElementById("check4").checked) queryParams["check4"] = currentUser;
+                }
+                loadData(queryParams);
+                $("input").blur();
+            }
+            
+            // function to read in data
+            var loadData = function(queryParams) {
+                currentIndex = 0;
+                if ("single_cand_id" in queryParams) {
+                    var php_call = "findsinglecand.php?cand_id=" + queryParams["single_cand_id"];
+                    //var php_call_noshows = "findsinglenoshow.php?cand_id=" + queryParams["single_cand_id"];
+                } else {
+                    var php_call = "readdata.php?";
+                    //var php_call_noshows = "readnoshows.php?";
+                    for (param in queryParams) {
+                        php_call += param + "=" + queryParams[param] + "&";
+                        //php_call_noshows += param + "=" + queryParams[param] + "&";
+                    }
+                }
+                d3.json(php_call, function(error, data) {
+                    if (error) { console.log(error); }
+                    else {  
+                        dataset = data;
+                        //d3.json(php_call_noshows, function(error2, data2) {
+                        //    if (error2) { console.log(error2); }
+                        //    else {
+                        //        noshows = data2;
+                        showPrepfold(dataset[currentIndex][0].cand_id);
+                        loadGroup(currentIndex);
+                        updateText(dataset[currentIndex][0]);
+                        //    }
+                        //});
+                    }
+                });
+            }
+            
+            d3.select("#qMarkCircle")
+                .on("mouseover", function() { d3.select(this).classed("qMarkHover", true); })
+                .on("mouseout", function() { d3.select(this).classed("qMarkHover", false); });
+                
+            $("#qMarkCircle").qtip({
+                content: "<u>Instructions</u><br><br>(0) means unrated<br>(1) means interesting group<br>(2) means sort of maybe interesting<br>(3) means known pulsar<br>(4) means RFI or random noise.<br><br>If you want to rate things, you can select NEW USER from the drop down list. You can also check other users' ratings. There is nothing stopping you from changing other peoples' ratings, so... please don't.<br><br>You can navigate with the keyboard using <b>W/A/S/D</b>, and you can use the 0-4 keys to rate things if you don't like clicking. The <b>Z</b> key can be used to change the zoom level in the box.<br><br>The <b>blue circles</b> in the box represent the relative positions on the sky of the beams for each candidate, drawn with a diameter of the nominal beam FWHM of 3.35 arcmin.<br><br>The <b>orange circles</b> are beams that were searched for matches to at least one of the blue beams, but none were found.<br><br>The small orange squares below the box can be moused over for information about the orange beams. They are sorted by the beams' distance from the centre of the box.<br><br>Finally, <b>ATNF pulsars</b> show up in the beam display below as small red circles, and if you mouse over them, you can see a bit of information about them. Currently, unpublished PALFA discoveries and other non-ATNF pulsars are not shown.",
+                show: "mouseover",
+                hide: {
+                    fixed: true,
+                    when: { event: 'inactive' },
+                    delay: 200
+                },
+                position: {
+                    my: 'top right',
+                    at: 'bottom left',
+                    target: $("#qMarkCircle")
+                },
+                style: {
+                    classes: 'qtip-dark'
+                }
+            });
+            
+            // Activate ratings buttons
+            d3.select("body").select("div#ratingBox0").on("click", function() {
+                updateRating(groupInfo.group_id, 0);
+                updateRatingText();
+            });
+            d3.select("body").select("div#ratingBox1").on("click", function() {
+                updateRating(groupInfo.group_id, 1);
+                updateRatingText();
+            });
+            d3.select("body").select("div#ratingBox2").on("click", function() {
+                updateRating(groupInfo.group_id, 2);
+                updateRatingText();
+            });
+            d3.select("body").select("div#ratingBox3").on("click", function() {
+                updateRating(groupInfo.group_id, 3);
+                updateRatingText();
+            });
+            d3.select("body").select("div#ratingBox4").on("click", function() {
+                updateRating(groupInfo.group_id, 4);
+                updateRatingText();
+            });
+            
+            // Allow keyboard navigation
+            $("body").keydown(function(e) {
+                if(e.target.nodeName != 'INPUT') {
+                    switch (e.which) {
+                        case 78: // 'n'
+                        case 68: // 'd'
+                            loadGroup(currentIndex+1);
+                            break;
+                        case 66: // 'b'
+                        case 65: //'a'
+                            loadGroup(currentIndex-1);
+                            break;
+                        case 87: // 'w'
+                            if (currentSelection > 0) {
+                                selectCand(dataset[currentIndex][currentSelection-1],
+                                    currentSelection-1);
+                            } else {
+                                selectCand(dataset[currentIndex][dataset[currentIndex].length-1],
+                                    dataset[currentIndex].length-1);
+                            }
+                            break;
+                        case 83: // 's'
+                            if (currentSelection + 1 < dataset[currentIndex].length) {
+                                selectCand(dataset[currentIndex][currentSelection+1],
+                                    currentSelection+1);
+                            } else {
+                                selectCand(dataset[currentIndex][0], 0);
+                            }
+                            break;
+                        case 90: //'z'
+                            switchZoomLevel();
+                            break;
+                        case 48: // '0'
+                        case 96: // numpad '0'
+                            updateRating(groupInfo.group_id, 0);
+                            updateRatingText();
+                            break;
+                        case 49: // '1'
+                        case 97: // numpad '1'
+                            updateRating(groupInfo.group_id, 1);
+                            updateRatingText();
+                            break;
+                        case 50: // '2'
+                        case 98: // numpad '2'
+                            updateRating(groupInfo.group_id, 2);
+                            updateRatingText();
+                            break;
+                        case 51: // '3'
+                        case 99: // numpad '3'
+                            updateRating(groupInfo.group_id, 3);
+                            updateRatingText();
+                            break;
+                        case 52: // '4'
+                        case 100: // numpad '4'
+                            updateRating(groupInfo.group_id, 4);
+                            updateRatingText();
+                            break;
+                    }
+                }
+            });
+
+            var loadGroup = function(n) {
+                if (n >= 0 && n < dataset.length) {
+                    img_div.select("img").remove();
+                    svg_div.selectAll("circle").remove();
+                    currentIndex = n;
+                    currentSelection = 0;
+                    baseXY = {};
+                    zoomLevel = 1;
+                    //document.getElementById('cand_entry').value=n;
+                    d3.select("#groupNumber").text(function() {
+                        return currentIndex+1 + " of " + dataset.length;
+                    })
+                    
+                    // start loading the images
+                    preload(dataset[n]);
+                    
+                    currentUser = document.getElementById("userSelect").value;
+
+                    //var corrected_group_id = dataset[n][0].group_id.split("+").join("%2B");
+                    var corrected_group_id = encodeURIComponent(dataset[n][0].group_id);
+                    var rgi_call = "readgroupinfo.php?group_id=\""+corrected_group_id+"\"";
+                    var gns_call = "getnoshows.php?group_id=\""+corrected_group_id+"\"";
+                    d3.json(rgi_call, function(error, gi_data) {
+                        if (error) { console.log(error); }
+                        else {
+                            d3.json(gns_call, function(ns_error, ns_data) {
+                                if (ns_error) { console.log(ns_error); }
+                                else {
+                                    groupInfo = gi_data;
+                                    groupNoShows = ns_data;
+                                    updateRatingText();
+                                    location.hash = "#" + encodeURIComponent(groupInfo.group_id);
+                                
+                                    // calculate x and y positions for drawing beams
+                                    // and get the ra and dec ranges at the same time
+                                    var ra0 = dataset[n][0].ra_deg;
+                                    var dec0 = dataset[n][0].dec_deg;
+                                    var xvals = [0];
+                                    var yvals = [0];
+                                    var ra_min = ra0;
+                                    var ra_max = ra0;
+                                    var dec_min = dec0;
+                                    var dec_max = dec0;
+                                    for (var ii = 1; ii < dataset[n].length; ii++) {
+                                        var this_ra = dataset[n][ii].ra_deg;
+                                        var this_dec = dataset[n][ii].dec_deg;
+                                        if (this_ra < ra_min) { ra_min = this_ra; }
+                                        if (this_dec < dec_min) { dec_min = this_dec; }
+                                        if (this_ra > ra_max) { ra_max = this_ra; }
+                                        if (this_dec > dec_max) { dec_max = this_dec; }
+                                        var sep = angularSeparation(ra0, dec0, this_ra, this_dec) * 10800/Math.PI;
+                                        var ang = positionAngle(ra0, dec0, this_ra, this_dec);
+                                        xvals.push(sep*Math.cos(ang+0.5*Math.PI));
+                                        yvals.push(sep*Math.sin(ang+0.5*Math.PI));
+                                    }
+                                    var x_mid = (d3.min(xvals) + d3.max(xvals))/2;
+                                    var y_mid = (d3.min(yvals) + d3.max(yvals))/2;
+                                    for (var ii = 0; ii < dataset[n].length; ii++) {
+                                        xvals[ii] -= x_mid;
+                                        yvals[ii] -= y_mid;
+                                    }
+                                    ra_min -= 0.5;
+                                    ra_max += 0.5;
+                                    dec_min -= 0.5;
+                                    dec_max += 0.5;
+                                    
+                                    // get no-show plot positions
+                                    var ns_xvals = [];
+                                    var ns_yvals = [];
+                                    var ns_plot_seps = [];
+                                    //var ns = noshows[groupInfo["group_id"]];
+                                    for (var ii=0; ii < groupNoShows.length; ii++) {
+                                        var sep = angularSeparation(ra0, dec0,
+                                            groupNoShows[ii].ra_deg, groupNoShows[ii].dec_deg) * 10800/Math.PI;
+                                        var ang = positionAngle(ra0, dec0,
+                                            groupNoShows[ii].ra_deg, groupNoShows[ii].dec_deg);
+                                        var ns_xval = sep*Math.cos(ang+0.5*Math.PI) - x_mid;
+                                        var ns_yval = sep*Math.sin(ang+0.5*Math.PI) - y_mid;
+                                        ns_xvals.push(ns_xval);
+                                        ns_yvals.push(ns_yval);
+                                        ns_plot_seps.push(Math.pow(ns_xval,2) + Math.pow(ns_yval,2));
+                                    }
+                                    
+                                    // sort groupNoShows and coordinates by angular separation
+                                    var map = ns_plot_seps.map(function(e, i) {
+                                        return { index: i, value: e };
+                                    });
+                                    map.sort(function(a, b) {
+                                        return a.value > b.value ? 1 : -1;
+                                    });
+                                    groupNoShows = map.map(function(e) {
+                                        return groupNoShows[e.index];
+                                    });
+                                    ns_xvals = map.map(function(e) {
+                                        return ns_xvals[e.index];
+                                    });
+                                    ns_yvals = map.map(function(e) {
+                                        return ns_yvals[e.index];
+                                    });
+                                    
+                                    // find nearby ATNF pulsars
+                                    var readatnf_call = "readatnf.php?ra_min=" + ra_min +
+                                        "&ra_max=" + ra_max + "&dec_min=" + dec_min + "&dec_max=" + dec_max;
+                                    d3.json(readatnf_call, function(error, psr_data) {
+                                        if (error) { console.log(error); }
+                                        else {
+                                            nearbyPulsars = psr_data;
+                                            console.log(nearbyPulsars);
+
+                                            // get pulsar plot positions
+                                            var psr_xvals = [];
+                                            var psr_yvals = [];
+                                            for (var ii=0; ii < nearbyPulsars.length; ii++) {
+                                                var sep = angularSeparation(ra0, dec0,
+                                                    nearbyPulsars[ii].ra_deg, nearbyPulsars[ii].dec_deg) *
+                                                        10800/Math.PI;
+                                                var ang = positionAngle(ra0, dec0,
+                                                    nearbyPulsars[ii].ra_deg, nearbyPulsars[ii].dec_deg);
+                                                psr_xvals.push(sep*Math.cos(ang+0.5*Math.PI) - x_mid);
+                                                psr_yvals.push(sep*Math.sin(ang+0.5*Math.PI) - y_mid);
+                                            }
+
+                                            extentMax = d3.max(xvals.concat(yvals));
+                                            
+                                            beamScale = d3.scale.linear()
+                                                .domain([0, extentMax + beamRadiusArcmin])
+                                                .range([0, w/2 - svg_padding]);
+                                            
+                                            drawNoShows(groupNoShows, ns_xvals, ns_yvals);
+                                            drawBeams(dataset[n], xvals, yvals);
+                                            updateBeamList(dataset[n]);
+                                            updateNoShowsList(groupNoShows);
+                                            drawPulsars(nearbyPulsars, psr_xvals, psr_yvals);
+                                            
+                                            /*
+                                            for (ii=0; ii<nearbyPulsars.length; ii++) {
+                                                var psrname = nearbyPulsars[ii].psrname;
+                                                var svg_id = "#PSR"+psrname;
+                                                console.log(svg_id);
+                                                $(svg_id).qtip({
+                                                    content: "hi",
+                                                    show: "mouseover",
+                                                    hide: "mouseout",
+                                                    position: {
+                                                        corner: {
+                                                            target: 'bottomLeft',
+                                                            tooltip: 'topRight'
+                                                        }
+                                                    },
+                                                    style: {
+                                                        name: 'dark'
+                                                    }
+                                                });
+                                            }
+                                            */
+                                            
+                                            selectCand(dataset[n][currentSelection], currentSelection);
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+            }
+            
+            var showPrepfold = function(id) {
+                img_div.select("img").remove();
+                img_div.append("img").attr("src", baseURL + id);
+            }
+            
+            // Update properties text
+            var updateText = function(cand) {
+                properties_div.select("p#mjd")
+                    .text("MJD: " + cand.mjd.toPrecision(10));
+                properties_div.select("p#period")
+                    .text("Period: " + (1000*cand.period).toPrecision(7) + " ms");
+                properties_div.select("p#dm")
+                    .text("DM: " + cand.dm.toPrecision(5));
+                properties_div.select("p#ra_deg")
+                    .text("RA (deg): " + cand.ra_deg.toPrecision(7));
+                properties_div.select("p#dec_deg")
+                    .text("Dec (deg): " + cand.dec_deg.toPrecision(7));
+                properties_div.select("p#header_id")
+                    .text("Header ID: " + cand.header_id);
+                properties_div.select("p#cand_id")
+                    .text("Candidate ID: " + cand.cand_id);
+                properties_div.select("p#sigma")
+                    .text("Prepfold Sigma: " + cand.sigma.toPrecision(3));
+            }
+            
+            var selectCand = function(d, i) {
+                beamlist_div.selectAll("p")
+                    .style("border-color", "rgba(50,50,50,0)");
+                d3.select("#candlist" + d.cand_id)
+                    .style("border-color", "rgba(50,50,50,1)");
+                svg_div.selectAll("circle.beam")
+                    .attr("stroke-width", 0);
+                d3.select("#candplot" + d.cand_id)
+                    .attr("stroke-width", 1);
+                showPrepfold(d.cand_id);
+                updateText(d);
+                currentSelection = i;
+            }
+            
+            // Function to preload images so they show up quickly
+			var preload = function(cand_group) {
+				for (i = 0; i < cand_group.length; i++) {
+					images[i] = new Image();
+					images[i].src = baseURL + cand_group[i].cand_id;
+				}
+			}
+            
+            // based on astropy's angle_utilities.position_angle
+            // takes angles in degrees
+            // returns angle (east of north) from position 1 to position 2 in radians
+            var positionAngle = function(lon1, lat1, lon2, lat2) {
+                lon1 *= Math.PI/180;
+                lat1 *= Math.PI/180;
+                lon2 *= Math.PI/180;
+                lat2 *= Math.PI/180;
+                var deltalon = lon2 - lon1;
+                var colat = Math.cos(lat2);
+                var x = Math.sin(lat2) * Math.cos(lat1) - colat * Math.sin(lat1) * Math.cos(deltalon);
+                var y = Math.sin(deltalon) * colat;
+                var angle = Math.atan2(y, x);
+                var twopi = Math.PI*2;
+                return ((angle % twopi) + twopi) % twopi;
+            }
+            
+            // based on astropy's angle_utilities.angular_separation
+            // takes angles in degrees
+            // returns angular separation between points in radians
+            var angularSeparation = function(lon1, lat1, lon2, lat2) {
+                lon1 *= Math.PI/180;
+                lat1 *= Math.PI/180;
+                lon2 *= Math.PI/180;
+                lat2 *= Math.PI/180;
+                var sdlon = Math.sin(lon2 - lon1);
+                var cdlon = Math.cos(lon2 - lon1);
+                var slat1 = Math.sin(lat1);
+                var slat2 = Math.sin(lat2);
+                var clat1 = Math.cos(lat1);
+                var clat2 = Math.cos(lat2);
+                var num1 = clat2 * sdlon;
+                var num2 = clat1 * slat2 - slat1 * clat2 * cdlon;
+                var denominator = slat1 * slat2 + clat1 * clat2 * cdlon;
+                return Math.atan2(Math.sqrt(Math.pow(num1,2) + Math.pow(num2,2)), denominator);
+            }
+            
+            var drawNoShows = function(data, xvals, yvals) {
+                svg_div.selectAll("circle.noshow")
+                    .data(data)
+                    .enter()
+                    .append("circle")
+                    .attr("class", "noshow")
+                    .attr("id", function(d) {
+                        baseXY["noshows" + d.header_id] = {};
+                        return "noshows" + d.header_id;
+                    })
+                    .attr("cx", function(d, i) {
+                        baseXY["noshows" + d.header_id].x = beamScale(xvals[i]) + w/2;
+                        return baseXY["noshows" + d.header_id].x;
+                    })
+                    .attr("cy", function(d, i) {
+                        baseXY["noshows" + d.header_id].y = h/2 - beamScale(yvals[i]);
+                        return baseXY["noshows" + d.header_id].y;
+                    })
+                    .attr("r", function(d) {
+                        baseXY["noshows" + d.header_id].r = beamScale(beamRadiusArcmin);
+                        return baseXY["noshows" + d.header_id].r;
+                    })
+                    .attr("stroke", "rgb(50,50,50)")
+                    .attr("stroke-width", 0);
+            }
+            
+            var drawBeams = function(data, xvals, yvals) {
+                //svg_div.selectAll("circle.beam").remove();
+                svg_div.selectAll("circle.beam")
+                    .data(data)
+                    .enter()
+                    .append("circle")
+                    .attr("class", "beam")
+                    .attr("id", function(d) {
+                        baseXY["candplot" + d.cand_id] = {};
+                        return "candplot" + d.cand_id;
+                    })
+                    .attr("cx", function(d, i) {
+                        baseXY["candplot" + d.cand_id].x = beamScale(xvals[i]) + w/2;
+                        return baseXY["candplot" + d.cand_id].x;
+                    })
+                    .attr("cy", function(d, i) {
+                        baseXY["candplot" + d.cand_id].y = h/2 - beamScale(yvals[i]);
+                        return baseXY["candplot" + d.cand_id].y;
+                    })
+                    .attr("r", function(d) {
+                        baseXY["candplot" + d.cand_id].r = beamScale(beamRadiusArcmin);
+                        return baseXY["candplot" + d.cand_id].r;
+                    })
+                    .attr("fill", function(d) {
+                        return "rgba(0, " + sigmaScale(d.sigma) + ", 255, 0.5)";
+                    })
+                    .attr("stroke", "rgb(50,50,50)")
+                    .attr("stroke-width", 0)
+                    .on("mouseover", function(d, i) {
+                        d3.select(this).attr("fill", "rgba(150, 50, 255, 0.5)");
+                        selectCand(d, i);
+                    })
+                    .on("mouseout", function(d) {
+                        d3.select(this).attr("fill", function() {
+                            return "rgba(0, " + sigmaScale(d.sigma) + ", 255, 0.5)";
+                        });
+                    });
+            }
+            
+            var drawPulsars = function(data, xvals, yvals) {
+                //svg_div.selectAll("circle.pulsar").remove();
+                svg_div.selectAll("circle.pulsar")
+                    .data(data)
+                    .enter()
+                    .append("circle")
+                    .attr("class", "pulsar")
+                    .attr("id", function(d) {
+                        baseXY["PSR" + d.psrname] = {};
+                        return "PSR" + d.psrname;
+                    })
+                    .attr("cx", function(d, i) {
+                        baseXY["PSR" + d.psrname].x = beamScale(xvals[i]) + w/2;
+                        return baseXY["PSR" + d.psrname].x;
+                    })
+                    .attr("cy", function(d, i) {
+                        baseXY["PSR" + d.psrname].y = h/2 - beamScale(yvals[i]);
+                        return baseXY["PSR" + d.psrname].y;
+                    })
+                    .attr("r", function(d) {
+                        baseXY["PSR" + d.psrname].r = Math.min(6, beamScale(beamRadiusArcmin)/2);
+                        return baseXY["PSR" + d.psrname].r;
+                    })
+                    .attr("fill", "rgb(255, 100, 100)")
+                    .append("title")
+                    .text(function(d) {
+                        if (d.dm >= 0) {
+                            return "Pulsar: " + d.psrname + "\n" +
+                                "Period: " + (1000*d.period).toPrecision(5) + " ms\n" +
+                                "DM: " + d.dm.toPrecision(5);
+                        } else {
+                            return "Pulsar: " + d.psrname + "\n" +
+                                "Period: " + (1000*d.period).toPrecision(5) + " ms\n" +
+                                "No DM value";
+                        }
+                    });     
+            }
+            
+            var updateBeamList = function(data) {
+                beamlist_div.selectAll("p").remove();
+                beamlist_div.selectAll("p")
+                    .data(data)
+                    .enter()
+                    .append("p")
+                    .style("background-color", function(d) {
+                        return "rgba(0, " + sigmaScale(d.sigma) + ", 255, 0.5)";
+                    })
+                    .style("border-style", "solid")
+                    .style("border-width", "1px")
+                    .style("border-color", "rgba(50,50,50,0)")
+                    .attr("class", "beamListItem")
+                    .attr("id", function(d) { return "candlist" + d.cand_id; })
+                    .text(function(d) { return (1000*d.period).toPrecision(5) + " ms"; })
+                    .on("mouseover", function(d, i) {
+                        d3.select(this).style("background-color", "rgba(150, 50, 255, 0.5)");
+                        // used to be 255, 100, 50, 0.5
+                        selectCand(d, i);
+                    })
+                    .on("mouseout", function(d) {
+                        d3.select(this).style("background-color", function(d) {
+                            return "rgba(0, " + sigmaScale(d.sigma) + ", 255, 0.5)";
+                        })
+                    });
+            }
+            
+            var updateNoShowsList = function(data) {
+                noShowsList_div.selectAll("div").remove();
+                noShowsList_div.selectAll("div")
+                    .data(data)
+                    .enter()
+                    .append("div")
+                    .style("background-color", function(d) {
+                        return "rgba(255, 200, 50, 0.6)";
+                    })
+                    //.style("border-style", "solid")
+                    //.style("border-width", "1px")
+                    //.style("border-color", "rgba(50,50,50,0)")
+                    .attr("class", "noShowsListItem")
+                    .attr("id", function(d) { return "nslist" + d.header_id; })
+                    //.text(function(d) { return (1000*d.period).toPrecision(5) + " ms"; })
+                    .on("mouseover", function(d, i) {
+                        d3.select(this).style("background-color", "rgba(255, 100, 50, 1.0)");
+                        //selectCand(d, i);
+                        svg_div.select("circle#noshows" + d.header_id).classed("noshowSelected", true);
+                    })
+                    .on("mouseout", function(d) {
+                        d3.select(this).style("background-color", function(d) {
+                            return "rgba(255, 200, 50, 0.6)";
+                        })
+                        svg_div.select("circle#noshows" + d.header_id).classed("noshowSelected", false);
+                    });
+                    
+                    /*.attr("title", function(d) {
+                        return "Header ID: " + d.header_id + "\n" +
+                            "MJD: " + (d.mjd).toPrecision(8);
+                    });*/
+                for (ii=0; ii<data.length; ii++) {
+                    $("div#nslist" + data[ii].header_id).qtip({
+                        content: "Header ID: " + data[ii].header_id +
+                            "<br>MJD: " + data[ii].mjd.toPrecision(10),
+                        show: "mouseover",
+                        hide: {
+                            fixed: true,
+                            when: { event: 'inactive' },
+                            delay: 100
+                        },
+                        //hide: "mouseout",
+                        position: {
+                            my: 'top right',
+                            at: 'bottom left',
+                            target: $("div#nslist" + data[ii].header_id)
+                        },
+                        style: {
+                            classes: 'qtip-cluetip'
+                        }
+                    });
+                }
+            }
+            
+            var switchZoomLevel = function() {
+                if (zoomLevel == 1) {
+                    svg_div.selectAll("circle")
+                        .transition()
+                        .duration(500)
+                        .attr("cx", function() {
+                            return (baseXY[d3.select(this).attr("id")].x - w/2)*0.5 + w/2;
+                        })
+                        .attr("cy", function() {
+                            return h/2 - (h/2 - baseXY[d3.select(this).attr("id")].y)*0.5;
+                        })
+                        .attr("r", function() {
+                            if (this.className.baseVal == "pulsar")
+                                return Math.min(baseXY[d3.select(this).attr("id")].r,
+                                    baseXY[d3.select(this).attr("id")].r/2);
+                            else
+                                return baseXY[d3.select(this).attr("id")].r*0.5;
+                        })
+                    zoomLevel = 2;
+                } else if (zoomLevel == 2) {
+                    svg_div.selectAll("circle")
+                        .transition()
+                        .duration(500)
+                        .attr("cx", function() {
+                            return (baseXY[d3.select(this).attr("id")].x - w/2)*0.25 + w/2;
+                        })
+                        .attr("cy", function() {
+                            return h/2 - (h/2 - baseXY[d3.select(this).attr("id")].y)*0.25;
+                        })
+                        .attr("r", function() {
+                            if (this.className.baseVal == "pulsar")
+                                return Math.min(baseXY[d3.select(this).attr("id")].r,
+                                    baseXY[d3.select(this).attr("id")].r/2);
+                            else
+                                return baseXY[d3.select(this).attr("id")].r*0.25;
+                        })
+                    zoomLevel = 3;
+                } else if (zoomLevel == 3) {
+                    svg_div.selectAll("circle")
+                        .transition()
+                        .duration(500)
+                        .attr("cx", function() {
+                            return baseXY[d3.select(this).attr("id")].x;
+                        })
+                        .attr("cy", function() {
+                            return baseXY[d3.select(this).attr("id")].y;
+                        })
+                        .attr("r", function() {
+                            return baseXY[d3.select(this).attr("id")].r;
+                        })
+                    zoomLevel = 1;
+                }
+            }
+            
+            var updateRating = function(group_id, value) {
+                if (currentUser == "select" || currentUser == null) {
+                    console.log("No user selected.");
+                } else if (value == 0 || value == 1 || value == 2 || value == 3 || value == 4) {
+                    var corrected_group_id = group_id.split("+").join("%2B");
+                    var php_call = "writegroupinfo.php?group_id=\"" +
+                        corrected_group_id + "\"&username=" + currentUser +
+                        "&new_rating=" + value
+                    $.ajax({
+                        url: php_call
+                    });
+                    groupInfo[currentUser] = value;
+                    updateRatingText();
+                }
+            }
+            
+            var updateRatingText = function() {
+                d3.select("body").selectAll(".ratingBox").classed("ratingBoxSelected", false);
+                var rating_text = "";
+                if (currentUser == "select" || currentUser == null) {
+                    rating_text = "to rate groups or see ratings"
+                    d3.select("p#groupRating")
+                        .style("background-color", "rgb(220, 220, 220)");
+                } else {
+                    if (groupInfo[currentUser] == 0) {
+                        rating_text = "has not rated this group";
+                        d3.select("p#groupRating")
+                            .style("background-color", "rgb(220, 220, 220)");
+                        d3.select("div#ratingBox0").classed("ratingBoxSelected", true);
+                    } else if (groupInfo[currentUser] == 1) {
+                        rating_text = "thinks this group is interesting";
+                        d3.select("p#groupRating")
+                            .style("background-color", "rgb(180, 255, 180)");
+                        d3.select("div#ratingBox1").classed("ratingBoxSelected", true);
+                    } else if (groupInfo[currentUser] == 2) {
+                        rating_text = "is not so sure about this group";
+                        d3.select("p#groupRating")
+                            .style("background-color", "rgb(255, 255, 150)");
+                        d3.select("div#ratingBox2").classed("ratingBoxSelected", true);
+                    } else if (groupInfo[currentUser] == 3) {
+                        rating_text = "thinks this is a known pulsar";
+                        d3.select("p#groupRating")
+                            .style("background-color", "rgb(180, 220, 255)");
+                        d3.select("div#ratingBox3").classed("ratingBoxSelected", true);
+                    } else if (groupInfo[currentUser] == 4) {
+                        rating_text = "thinks this is RFI or noise";
+                        d3.select("p#groupRating")
+                            .style("background-color", "rgb(255, 220, 180)");
+                        d3.select("div#ratingBox4").classed("ratingBoxSelected", true);
+                    }
+                }
+                d3.select("body").select("span#rating").text(rating_text);
+            }
+            
+            var addUser = function(username) {
+                if (usernames.indexOf(username) >= 0) {
+                    console.log(username + " already in database");
+                } else {
+                    $.ajax({
+                        url: "adduser.php?username=" + username
+                    });
+                    usernames.push(username);
+                    userSelect.append("option").text(username);
+                }
+            }
+            
+            var selectName = function() {
+                var selection = document.getElementById("userSelect").value;
+                if (selection == "newuser") {
+                    var name = prompt("Please enter your name");
+                    if (name != "" && name != null) {
+                        addUser(name);
+                        document.getElementById("userSelect").value = name;
+                        groupInfo[name] = 0;
+                        currentUser = name;
+                    } else {
+                        document.getElementById("userSelect").value = "select";
+                    }
+                } else {
+                    currentUser = selection;
+                }
+                updateRatingText();
+                $("select").blur();
+            }
+            
+            // Start by loading everything or the URL-specified group
+            // (or a group with a specific candidate in it, specified by eg, "#cand1234567")
+            var hash_content = location.hash.replace('#','');
+            var loadDataArg = new Object;
+            if (hash_content.slice(0,4) == "cand") loadDataArg["single_cand_id"] = hash_content.slice(4);
+            else loadDataArg["group_id"] = "\"" + hash_content + "\"";
+            loadData(loadDataArg);
+        </script>
+    </body>
+</html>
