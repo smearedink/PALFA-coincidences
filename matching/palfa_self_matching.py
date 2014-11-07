@@ -6,13 +6,17 @@ import numpy as np
 import os, sys, cPickle, struct, base64, time
 import sqlite3 as sql
 
-all_palfa_fname = "allcands_20140902_sortbyP.npy"
+files_basedir = "/data/lore/madsense/PALFA/coincidence_files"
+
+all_mock_fname = "allcands_20141023_sortbyP.npy"
+all_wapp_fname = "allcands_wapp_sortbyP.npy"
 
 max_sep = 3.35 * 1.5 # arcmin
 
 max_harm = 8
 
 mock_band = np.array([1214., 1537.])
+wapp_band = np.array([1390., 1490.])
 
 # whether to check relative probability of false matches
 #run_monte_carlo = False
@@ -22,33 +26,33 @@ def ddm(dt, band=mock_band):
 
 run_files_folder = "run_pickles"
 
-cands2comp_fname = run_files_folder + "/" + "cands2comp.pkl"
-all_headers_fname = run_files_folder + "/" + "all_headers.pkl"
-neighbours_fname = run_files_folder + "/" + "neighbours.pkl"
-cands_by_header_fname = run_files_folder + "/" + "cands_by_header.pkl"
-groups_fname = run_files_folder + "/" + "groups.pkl"
-fixed_groups_fname = run_files_folder + "/" + "fixed_groups.pkl"
-fixed_groups_noshows_fname = run_files_folder + "/" + "noshows.pkl"
+cands2comp_fname = "cands2comp.pkl"
+all_headers_fname = "all_headers.pkl"
+neighbours_fname = "neighbours.pkl"
+cands_by_header_fname = "cands_by_header.pkl"
+groups_fname = "groups.pkl"
+fixed_groups_fname = "fixed_groups.pkl"
+fixed_groups_noshows_fname = "noshows.pkl"
 
-if not os.path.exists(run_files_folder):
-    os.makedirs(run_files_folder)
+if not os.path.exists(files_basedir+"/"+run_files_folder):
+    os.makedirs(files_basedir+"/"+run_files_folder)
 
-if os.path.exists(cands2comp_fname) and os.path.exists(all_headers_fname):
-    with open(cands2comp_fname, 'rb') as f:
+if os.path.exists(files_basedir+"/"+run_files_folder+"/"+cands2comp_fname) and os.path.exists(files_basedir+"/"+run_files_folder+"/"+all_headers_fname):
+    with open(files_basedir+"/"+run_files_folder+"/"+cands2comp_fname, 'rb') as f:
         cands2comp = cPickle.load(f)
-    with open(all_headers_fname, 'rb') as f:
+    with open(files_basedir+"/"+run_files_folder+"/"+all_headers_fname, 'rb') as f:
         all_headers = cPickle.load(f)
 else:
     print "Generating cands2comp and headers files..."
-    all_palfa = np.load(all_palfa_fname)
+    all_palfa = np.load(all_mock_fname)
     sigma_cond = all_palfa['sigma'] > 7.
     dm_cond = all_palfa['dm'] > 10.
     cands2comp = all_palfa[sigma_cond * dm_cond]
     all_headers, all_headers_idx = np.unique(all_palfa['header_id'], return_index=True)
     all_headers = all_palfa[all_headers_idx][['header_id', 'source_name', 'beam_id', 'ra_deg', 'dec_deg', 'mjd', 'obs_time']]
-    with open(cands2comp_fname, 'wb') as f:
+    with open(files_basedir+"/"+run_files_folder+"/"+cands2comp_fname, 'wb') as f:
         cPickle.dump(cands2comp, f, protocol=cPickle.HIGHEST_PROTOCOL)
-    with open(all_headers_fname, 'wb') as f:
+    with open(files_basedir+"/"+run_files_folder+"/"+all_headers_fname, 'wb') as f:
         cPickle.dump(all_headers, f, protocol=cPickle.HIGHEST_PROTOCOL)
     print "Done."
 nheaders = len(all_headers)
@@ -79,8 +83,8 @@ ra_rad = all_headers['ra_deg']*np.pi/180.
 dec_rad = all_headers['dec_deg']*np.pi/180.
 max_sep_rad_sq = (max_sep/60.*np.pi/180.)**2
 
-if os.path.exists(neighbours_fname):
-    with open(neighbours_fname, 'rb') as f:
+if os.path.exists(files_basedir+"/"+run_files_folder+"/"+neighbours_fname):
+    with open(files_basedir+"/"+run_files_folder+"/"+neighbours_fname, 'rb') as f:
         neighbours = cPickle.load(f)
 else:
     print "No neighbours file found: generating %s" % neighbours_fname
@@ -93,12 +97,12 @@ else:
         sys.stdout.flush()
     sys.stdout.write("\n")
     sys.stdout.flush()
-    with open(neighbours_fname, 'wb') as f:
+    with open(files_basedir+"/"+run_files_folder+"/"+neighbours_fname, 'wb') as f:
         cPickle.dump(neighbours, f, protocol=cPickle.HIGHEST_PROTOCOL)
     print "Done."
 
-if os.path.exists(cands_by_header_fname):
-    with open(cands_by_header_fname, 'rb') as f:
+if os.path.exists(files_basedir+"/"+run_files_folder+"/"+cands_by_header_fname):
+    with open(files_basedir+"/"+run_files_folder+"/"+cands_by_header_fname, 'rb') as f:
         cands_by_header = cPickle.load(f)
 else:
     print "No cands_by_header file found: generating %s" % cands_by_header_fname
@@ -109,13 +113,13 @@ else:
         sys.stdout.flush()
     sys.stdout.write("\n")
     sys.stdout.flush()
-    with open(cands_by_header_fname, 'wb') as f:
+    with open(files_basedir+"/"+run_files_folder+"/"+cands_by_header_fname, 'wb') as f:
         cPickle.dump(cands_by_header, f, protocol=cPickle.HIGHEST_PROTOCOL)
     print "Done."
 
 # took almost 90 minutes to run this on the "20140825" cands (77512 headers, 471556 cands2comp)
-if os.path.exists(groups_fname):
-    with open(groups_fname, 'rb') as f:
+if os.path.exists(files_basedir+"/"+run_files_folder+"/"+groups_fname):
+    with open(files_basedir+"/"+run_files_folder+"/"+groups_fname, 'rb') as f:
         groups = cPickle.load(f)
 else:
     print "No groups file found: generating %s" % groups_fname
@@ -167,7 +171,7 @@ else:
         sys.stdout.flush()
     sys.stdout.write("\n")
     sys.stdout.flush()
-    with open(groups_fname, 'wb') as f:
+    with open(files_basedir+"/"+run_files_folder+"/"+groups_fname, 'wb') as f:
         cPickle.dump(groups, f, protocol=cPickle.HIGHEST_PROTOCOL)
     print "Done."
 
@@ -177,8 +181,8 @@ else:
 
 # example of this: headers 74921 and 75003
 
-if os.path.exists(fixed_groups_fname):
-    with open(fixed_groups_fname, 'rb') as f:
+if os.path.exists(files_basedir+"/"+run_files_folder+"/"+fixed_groups_fname):
+    with open(files_basedir+"/"+run_files_folder+"/"+fixed_groups_fname, 'rb') as f:
         fixed_groups = cPickle.load(f)
 else:
     print "Removing multi-fits-file observation matches..."
@@ -192,12 +196,12 @@ else:
             fixed_groups.append(fixed_group)
     #groups = np.array(fixed_groups)
     #del fixed_groups
-    with open(fixed_groups_fname, 'wb') as f:
+    with open(files_basedir+"/"+run_files_folder+"/"+fixed_groups_fname, 'wb') as f:
         cPickle.dump(fixed_groups, f, protocol=cPickle.HIGHEST_PROTOCOL)
     print "Done."
 
-if os.path.exists(fixed_groups_noshows_fname):
-    with open(fixed_groups_noshows_fname, 'rb') as f:
+if os.path.exists(files_basedir+"/"+run_files_folder+"/"+fixed_groups_noshows_fname):
+    with open(files_basedir+"/"+run_files_folder+"/"+fixed_groups_noshows_fname, 'rb') as f:
         noshows = cPickle.load(f)
 else:
     print "Finding no-shows..."
@@ -208,7 +212,7 @@ else:
         group_noshows = group_headers_checked.difference(group_header_ids)
         #group_noshows_info = all_headers[[np.where(all_headers['header_id'] == h)[0][0] for h in group_noshows]]
         noshows.append(group_noshows)
-    with open(fixed_groups_noshows_fname, 'wb') as f:
+    with open(files_basedir+"/"+run_files_folder+"/"+fixed_groups_noshows_fname, 'wb') as f:
         cPickle.dump(noshows, f, protocol=cPickle.HIGHEST_PROTOCOL)
     print "Done."
 
