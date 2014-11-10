@@ -8,7 +8,7 @@ import sqlite3 as sql
 
 files_basedir = "/data/lore/madsense/PALFA/coincidence_files"
 
-all_mock_fname = "allcands_20141023_sortbyP.npy"
+all_mock_fname = "allcands_20141110_sortbyP.npy"
 all_wapp_fname = "allcands_wapp_sortbyP.npy"
 
 max_sep = 3.35 * 1.5 # arcmin
@@ -45,7 +45,7 @@ if os.path.exists(files_basedir+"/"+run_files_folder+"/"+cands2comp_fname) and o
 else:
     print "Generating cands2comp and headers files..."
     all_palfa = np.load(all_mock_fname)
-    sigma_cond = all_palfa['sigma'] > 7.
+    sigma_cond = all_palfa['prepfold_sigma'] > 7.
     dm_cond = all_palfa['dm'] > 10.
     cands2comp = all_palfa[sigma_cond * dm_cond]
     all_headers, all_headers_idx = np.unique(all_palfa['header_id'], return_index=True)
@@ -134,7 +134,7 @@ else:
                 these_cands = cands_by_header[this_id]
                 those_cands = cands_by_header[that_id]
                 for ii in xrange(len(these_cands)):
-                    this_P = these_cands['period'][ii]
+                    this_P = these_cands['bary_period'][ii]
                     this_DM = these_cands['dm'][ii]
                     #this_MJD = these_cands['mjd'][ii]
                     #simul = np.abs(this_MJD - those_cands['mjd']) < 1.e-5
@@ -150,7 +150,7 @@ else:
                     
                     match_idx = np.zeros(len(those_cands), dtype=bool)
                     for harm in [1./thing for thing in range(2, max_harm+1)][::-1] + range(1, max_harm+1):
-                        P_match_idx = np.abs(those_cands['period'] - this_P * harm) < dP_max * harm
+                        P_match_idx = np.abs(those_cands['bary_period'] - this_P * harm) < dP_max * harm
                         DM_match_idx = np.abs(those_cands['dm'] - this_DM) < min(ddm(min(this_P*harm, this_P)), this_DM*0.1)
                         match_idx += (P_match_idx * DM_match_idx)
                     this_group = set(those_cands['cand_id'][match_idx]).union({these_cands['cand_id'][ii]})
@@ -189,7 +189,7 @@ else:
     fixed_groups = []
     for ii in range(len(groups)):
         group_idx = [np.where(cands2comp['cand_id'] == cand_id)[0][0] for cand_id in groups[ii]]
-        group_cands_idx = np.array(group_idx)[np.argsort(cands2comp[group_idx], order='sigma')[::-1]]
+        group_cands_idx = np.array(group_idx)[np.argsort(cands2comp[group_idx], order='prepfold_sigma')[::-1]]
         fixed_group_idx = group_cands_idx[np.unique(cands2comp[group_cands_idx][['source_name', 'beam_id']], return_index=True)[1]]
         fixed_group = set(cands2comp['cand_id'][fixed_group_idx])
         if len(fixed_group) > 1:
@@ -279,12 +279,12 @@ def create_db(out_fname="match_data.db", existing_db=None, remove_users=[]):
     for ii in range(len(data)):
         group_id = generate_group_id([item['cand_id'] for item in data[ii]])
         new_group_ids.append(group_id)
-        periods = [item['period'] for item in data[ii]]
-        sigmas = [item['sigma'] for item in data[ii]]
+        periods = [item['bary_period'] for item in data[ii]]
+        sigmas = [item['prepfold_sigma'] for item in data[ii]]
         ncands = len(periods)
         for cand in data[ii]:
             cands_entries.append((cand['cand_id'], group_id, cand['header_id'],\
-                cand['period'], cand['dm'], cand['sigma']))
+                cand['bary_period'], cand['dm'], cand['prepfold_sigma']))
         for ns in noshows[ii]:
             noshows_entries.append((group_id, ns))
         groups_entries.append((group_id, np.min(periods), np.max(periods),\
