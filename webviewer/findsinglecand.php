@@ -12,7 +12,7 @@ if ($row = $result->fetchArray(SQLITE3_ASSOC))
     $group_id = $row['group_id'];
 
 #$query_string = sprintf("SELECT c.group_id, c.cand_id, c.header_id, c.bary_period as period, c.dm, h.mjd, c.sigma, h.ra_deg, h.dec_deg FROM cands as c LEFT JOIN headers as h ON c.header_id=h.header_id INNER JOIN groups as g ON c.group_id=g.group_id WHERE c.group_id = \"%s\"", $group_id);
-$query_string = sprintf("SELECT c.group_id, c.cand_id, c.header_id, c.bary_period as period, c.dm, h.mjd, c.sigma, h.ra_deg, h.dec_deg FROM cands as c LEFT JOIN headers as h ON c.header_id=h.header_id WHERE c.group_id = \"%s\"", $group_id);
+$query_string = sprintf("SELECT c.group_id, c.cand_id, c.header_id, c.db_version, c.bary_period as period, c.dm, h.mjd, c.sigma, h.ra_deg, h.dec_deg FROM cands as c LEFT JOIN headers as h ON c.header_id=h.header_id AND c.db_version=h.db_version WHERE c.group_id = \"%s\"", $group_id);
 $stmt = $db->prepare($query_string);
 $result = $stmt->execute();
 

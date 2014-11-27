@@ -8,19 +8,24 @@ import sqlite3 as sql
 
 files_basedir = "/data/lore/madsense/PALFA/coincidence_files"
 
-all_mock_fname = "allcands_20141110_sortbyP.npy"
+all_mock_fname = "allcands_20141118_sortbyP.npy"
 all_wapp_fname = "allcands_wapp_sortbyP.npy"
 
 max_sep = 3.35 * 1.5 # arcmin
 
 max_harm = 8
 
+# this is multiplied by db_version and added to header_id or cand_id when necessary so that they are distinguishable
+# eg, db v3 cand_id 11234567 -> 3011234567
+dbvfact = 1000000000
+
 mock_band = np.array([1214., 1537.])
-wapp_band = np.array([1390., 1490.])
+#wapp_band = np.array([1390., 1490.])
 
 # whether to check relative probability of false matches
 #run_monte_carlo = False
 
+# we'll just always go with the mock band, since it is more demanding in its matches
 def ddm(dt, band=mock_band):
     return dt / (4.148808e3 * (band[0]**(-2) - band[1]**(-2)))
 
@@ -44,12 +49,31 @@ if os.path.exists(files_basedir+"/"+run_files_folder+"/"+cands2comp_fname) and o
         all_headers = cPickle.load(f)
 else:
     print "Generating cands2comp and headers files..."
-    all_palfa = np.load(all_mock_fname)
-    sigma_cond = all_palfa['prepfold_sigma'] > 7.
-    dm_cond = all_palfa['dm'] > 10.
-    cands2comp = all_palfa[sigma_cond * dm_cond]
+    print "Loading all mock candidates..."
+    all_palfa3 = np.load(files_basedir+"/"+all_mock_fname)
+#    cands2comp_palfa3 = all_palfa3[["cand_id", "header_id", "obs_id", "beam_id", "proc_date", "topo_period", "bary_period", "dm", "presto_sigma", "ra_deg", "dec_deg", "mjd", "obs_time", "db_version"]][all_palfa3['dm'] > 10]
+#    del all_palfa3
+    print "Loading all wapp candidates..."
+    all_wapp = np.load(files_basedir+"/"+all_wapp_fname)
+#    cands2comp_wapp = all_wapp[all_wapp['dm'] > 10]
+#    del all_wapp
+    print "Combining..."
+    all_palfa = np.concatenate((all_palfa3[["cand_id", "header_id", "obs_id", "beam_id", "proc_date", "topo_period", "bary_period", "dm", "presto_sigma", "ra_deg", "dec_deg", "mjd", "obs_time", "db_version"]], all_wapp))
+    print "Freeing memory..."
+    del all_palfa3, all_wapp
+    print "Updating header_id and cand_id values..."
+    all_palfa['header_id'] += dbvfact*all_palfa['db_version']
+    all_palfa['cand_id'] += dbvfact*all_palfa['db_version']
+    #sigma_cond = all_palfa3['prepfold_sigma'] > 7.
+    #dm_cond = all_palfa3['dm'] > 10.
+    #cands2comp = all_palfa3[sigma_cond * dm_cond]
+    cands2comp = all_palfa[all_palfa['dm'] > 10]
+#    cands2comp = np.concatenate((cands2comp_palfa3, cands2comp_wapp))
+#    cands2comp['header_id'] += dbvfact*cands2comp['db_version']
+#    cands2comp['cand_id'] += dbvfact*cands2comp['db_version']
+#    del cands2comp_palfa3, cands2comp_wapp
     all_headers, all_headers_idx = np.unique(all_palfa['header_id'], return_index=True)
-    all_headers = all_palfa[all_headers_idx][['header_id', 'source_name', 'beam_id', 'ra_deg', 'dec_deg', 'mjd', 'obs_time']]
+    all_headers = all_palfa[all_headers_idx][['header_id', 'obs_id', 'beam_id', 'ra_deg', 'dec_deg', 'mjd', 'obs_time', 'db_version']]
     with open(files_basedir+"/"+run_files_folder+"/"+cands2comp_fname, 'wb') as f:
         cPickle.dump(cands2comp, f, protocol=cPickle.HIGHEST_PROTOCOL)
     with open(files_basedir+"/"+run_files_folder+"/"+all_headers_fname, 'wb') as f:
@@ -117,7 +141,6 @@ else:
         cPickle.dump(cands_by_header, f, protocol=cPickle.HIGHEST_PROTOCOL)
     print "Done."
 
-# took almost 90 minutes to run this on the "20140825" cands (77512 headers, 471556 cands2comp)
 if os.path.exists(files_basedir+"/"+run_files_folder+"/"+groups_fname):
     with open(files_basedir+"/"+run_files_folder+"/"+groups_fname, 'rb') as f:
         groups = cPickle.load(f)
@@ -138,10 +161,9 @@ else:
                     this_DM = these_cands['dm'][ii]
                     #this_MJD = these_cands['mjd'][ii]
                     #simul = np.abs(this_MJD - those_cands['mjd']) < 1.e-5
-                    #dP_max = this_P**2 / cands2comp['obs_time'][ii]
+                    dP_max = this_P**2 / cands2comp['obs_time'][ii]
                     # A conservative range that should allow for fast binary doppler variation
                     #dP_max = this_P * 0.001
-                    dP_max = this_P * 0.001
                     
                     ### slower or faster than commented out version?  should check
                     # new one got to 1735 headers in 5.0 minutes
@@ -167,7 +189,7 @@ else:
         seconds_elapsed = time.time() - t1
         fraction_done = float(jj+1)/nheaders
         #sys.stdout.write("\rProgress: %-5.2f%%" % (100.*float(jj+1)/nheaders))
-        sys.stdout.write("\rChecked %d of %d headers, %d groups, %.1f minutes passed" % (jj+1, len(groups), nheaders, seconds_elapsed/60.))
+        sys.stdout.write("\rChecked %d of %d headers, %d groups, %.1f minutes passed" % (jj+1, nheaders, len(groups), seconds_elapsed/60.))
         sys.stdout.flush()
     sys.stdout.write("\n")
     sys.stdout.flush()
@@ -189,13 +211,22 @@ else:
     fixed_groups = []
     for ii in range(len(groups)):
         group_idx = [np.where(cands2comp['cand_id'] == cand_id)[0][0] for cand_id in groups[ii]]
-        group_cands_idx = np.array(group_idx)[np.argsort(cands2comp[group_idx], order='prepfold_sigma')[::-1]]
-        fixed_group_idx = group_cands_idx[np.unique(cands2comp[group_cands_idx][['source_name', 'beam_id']], return_index=True)[1]]
+#        group_cands_idx = np.array(group_idx)[np.argsort(cands2comp[group_idx], order='prepfold_sigma')[::-1]]
+        group_cands_idx = np.array(group_idx)[np.argsort(cands2comp[group_idx], order='presto_sigma')[::-1]]
+#        fixed_group_idx = group_cands_idx[np.unique(cands2comp[group_cands_idx][['obs_id', 'beam_id', 'db_version']], return_index=True)[1]]
+        # a goofy workaround for the fact that np.unique's mergesort won't
+        # work with an array of objects or tuples JUST in numpy 1.6.2
+        # (the arbitrary numbers here are just biggish primes)
+        fixed_group_idx = group_cands_idx[np.unique([(a[0]*271+a[1])*3319+a[2] for a in cands2comp[group_cands_idx][['obs_id', 'beam_id', 'db_version']]], return_index=True)[1]]
         fixed_group = set(cands2comp['cand_id'][fixed_group_idx])
         if len(fixed_group) > 1:
             fixed_groups.append(fixed_group)
     #groups = np.array(fixed_groups)
     #del fixed_groups
+        sys.stdout.write("\rChecked %d of %d groups" % (ii+1, len(groups)))
+        sys.stdout.flush()
+    sys.stdout.write("\n")
+    sys.stdout.flush()
     with open(files_basedir+"/"+run_files_folder+"/"+fixed_groups_fname, 'wb') as f:
         cPickle.dump(fixed_groups, f, protocol=cPickle.HIGHEST_PROTOCOL)
     print "Done."
@@ -223,7 +254,7 @@ def generate_group_id(cand_ids):
     cand_ids is a list or array of the cand_id values in the group
     should return a unique string for that set of ids
     """
-    return base64.b64encode(struct.pack('%di'%len(cand_ids),\
+    return base64.b64encode(struct.pack('%dI'%len(cand_ids),\
         *np.sort(cand_ids)))
 
 def create_db(out_fname="match_data.db", existing_db=None, remove_users=[]):
@@ -263,7 +294,7 @@ def create_db(out_fname="match_data.db", existing_db=None, remove_users=[]):
     if os.path.exists(out_fname):
         os.remove(out_fname)
     
-    atnf = np.loadtxt("atnf.txt", delimiter="$@$@$", dtype=str)
+    atnf = np.loadtxt("atnf.txt", delimiter="\n", dtype=str)
     atnf_entries = [(p.split()[1], float(p.split()[2]), float(p.split()[3]),\
         float(p.split()[4]), float(p.split()[6])) for p in atnf]
     
@@ -280,26 +311,26 @@ def create_db(out_fname="match_data.db", existing_db=None, remove_users=[]):
         group_id = generate_group_id([item['cand_id'] for item in data[ii]])
         new_group_ids.append(group_id)
         periods = [item['bary_period'] for item in data[ii]]
-        sigmas = [item['prepfold_sigma'] for item in data[ii]]
+        sigmas = [item['presto_sigma'] for item in data[ii]]
         ncands = len(periods)
         for cand in data[ii]:
-            cands_entries.append((cand['cand_id'], group_id, cand['header_id'],\
-                cand['bary_period'], cand['dm'], cand['prepfold_sigma']))
+            cands_entries.append((int(cand['cand_id'] % dbvfact), int(cand['cand_id'] / dbvfact), group_id, int(cand['header_id'] % dbvfact),\
+                cand['bary_period'], cand['dm'], cand['presto_sigma']))
         for ns in noshows[ii]:
-            noshows_entries.append((group_id, ns))
-        groups_entries.append((group_id, np.min(periods), np.max(periods),\
-            np.min(sigmas), np.max(sigmas), ncands))
+            noshows_entries.append((group_id, int(ns % dbvfact), int(ns / dbvfact)))
+        groups_entries.append((group_id, float(np.min(periods)), float(np.max(periods)),\
+            float(np.min(sigmas)), float(np.max(sigmas)), ncands))
 
     db = sql.connect(out_fname)
     cursor = db.cursor()
     
     cursor.execute("""
-        CREATE TABLE cands(cand_id INTEGER PRIMARY KEY, group_id TEXT,
+        CREATE TABLE cands(cand_id INTEGER, db_version INTEGER, group_id TEXT,
             header_id INTEGER, bary_period REAL, dm REAL, sigma REAL)
     """)
     
     cursor.execute("""
-        CREATE TABLE noshows(group_id TEXT, header_id INTEGER)
+        CREATE TABLE noshows(group_id TEXT, header_id INTEGER, db_version INTEGER)
     """)
     
     cursor.execute("""
@@ -313,7 +344,7 @@ def create_db(out_fname="match_data.db", existing_db=None, remove_users=[]):
     """)
     
     cursor.execute("""
-        CREATE TABLE headers(header_id INTEGER PRIMARY KEY, source_name TEXT,
+        CREATE TABLE headers(header_id INTEGER, db_version INTEGER, obs_id INTEGER,
             beam_id INTEGER, mjd REAL, ra_deg REAL, dec_deg REAL)
     """)
     
@@ -322,13 +353,13 @@ def create_db(out_fname="match_data.db", existing_db=None, remove_users=[]):
     """)
     
     cursor.executemany("""
-        INSERT INTO cands(cand_id, group_id, header_id, bary_period, dm, sigma)
-        VALUES(?, ?, ?, ?, ?, ?)
+        INSERT INTO cands(cand_id, db_version, group_id, header_id, bary_period, dm, sigma)
+        VALUES(?, ?, ?, ?, ?, ?, ?)
     """, cands_entries)
     
     cursor.executemany("""
-        INSERT INTO noshows(group_id, header_id)
-        VALUES(?, ?)
+        INSERT INTO noshows(group_id, header_id, db_version)
+        VALUES(?, ?, ?)
     """, noshows_entries)
     
     cursor.executemany("""
@@ -350,9 +381,9 @@ def create_db(out_fname="match_data.db", existing_db=None, remove_users=[]):
     """, atnf_entries)
     
     cursor.executemany("""
-        INSERT INTO headers(header_id, source_name, beam_id, mjd, ra_deg, dec_deg)
-        VALUES(?, ?, ?, ?, ?, ?)
-    """, [(h['header_id'], h['source_name'], h['beam_id'], h['mjd'], h['ra_deg'], h['dec_deg']) for h in all_headers])
+        INSERT INTO headers(header_id, db_version, obs_id, beam_id, mjd, ra_deg, dec_deg)
+        VALUES(?, ?, ?, ?, ?, ?, ?)
+    """, [(int(h['header_id']%dbvfact), int(h['db_version']), int(h['obs_id']), int(h['beam_id']), float(h['mjd']), float(h['ra_deg']), float(h['dec_deg'])) for h in all_headers])
     
     for new_group_id in new_group_ids:
         if new_group_id in dbe_groups_dict:
