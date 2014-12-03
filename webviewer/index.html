@@ -907,7 +907,8 @@
                     });*/
                 for (ii=0; ii<data.length; ii++) {
                     $("div#nslist" + data[ii].header_id).qtip({
-                        content: "Header ID: " + data[ii].header_id +
+                        content: "DB version: " + data[ii].db_version +
+                            "Header ID: " + data[ii].header_id +
                             "<br>MJD: " + data[ii].mjd.toPrecision(10),
                         show: "mouseover",
                         hide: {
