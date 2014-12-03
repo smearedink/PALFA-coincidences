@@ -207,7 +207,7 @@ if os.path.exists(files_basedir+"/"+run_files_folder+"/"+fixed_groups_fname):
     with open(files_basedir+"/"+run_files_folder+"/"+fixed_groups_fname, 'rb') as f:
         fixed_groups = cPickle.load(f)
 else:
-    print "Removing multi-fits-file observation matches..."
+    print "Removing multi-fits-file observation matches and beam 7 WAPP cases..."
     fixed_groups = []
     for ii in range(len(groups)):
         group_idx = [np.where(cands2comp['cand_id'] == cand_id)[0][0] for cand_id in groups[ii]]
@@ -218,7 +218,8 @@ else:
         # work with an array of objects or tuples JUST in numpy 1.6.2
         # (the arbitrary numbers here are just biggish primes)
         fixed_group_idx = group_cands_idx[np.unique([(a[0]*271+a[1])*3319+a[2] for a in cands2comp[group_cands_idx][['obs_id', 'beam_id', 'db_version']]], return_index=True)[1]]
-        fixed_group = set(cands2comp['cand_id'][fixed_group_idx])
+        beam7_idx = group_cands_idx[np.where(cands2comp[group_idx] != 7)[0]]
+        fixed_group = set(cands2comp['cand_id'][fixed_group_idx]) - set(cands2comp['cand_id'][beam7_idx])
         if len(fixed_group) > 1:
             fixed_groups.append(fixed_group)
     #groups = np.array(fixed_groups)
