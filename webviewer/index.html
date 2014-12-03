@@ -550,8 +550,6 @@
                                         xvals[ii] -= x_mid;
                                         yvals[ii] -= y_mid;
                                     }
-                                    console.log(xvals);
-                                    console.log(yvals);
                                     ra_min -= 0.5;
                                     ra_max += 0.5;
                                     dec_min -= 0.5;
@@ -573,8 +571,6 @@
                                         ns_yvals.push(ns_yval);
                                         ns_plot_seps.push(Math.pow(ns_xval,2) + Math.pow(ns_yval,2));
                                     }
-                                    console.log(ns_xvals);
-                                    console.log(ns_yvals);
                                     
                                     // sort groupNoShows and coordinates by angular separation
                                     var map = ns_plot_seps.map(function(e, i) {
