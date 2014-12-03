@@ -92,7 +92,7 @@
             
             div#beamsList {
                 width: 170px;
-                height: 220px;
+                height: 206px;
                 /*padding-top: 8px;*/
             }
             
@@ -112,7 +112,7 @@
             
             div#propertiesList {
                 width: 154px;
-                height: 120px;
+                height: 134px;
                 padding: 8px;
                 margin-bottom: 10px;
                 background-color: rgb(210,225,240);
@@ -288,6 +288,7 @@
             properties_div.append("p").attr("id", "dm").classed("propList", true);
             properties_div.append("p").attr("id", "ra_deg").classed("propList", true);
             properties_div.append("p").attr("id", "dec_deg").classed("propList", true);
+            properties_div.append("p").attr("id", "db_version").classed("propList", true);
             properties_div.append("p").attr("id", "header_id").classed("propList", true);
             properties_div.append("p").attr("id", "cand_id").classed("propList", true);
             properties_div.append("p").attr("id", "sigma").classed("propList", true);
@@ -549,6 +550,8 @@
                                         xvals[ii] -= x_mid;
                                         yvals[ii] -= y_mid;
                                     }
+                                    console.log(xvals);
+                                    console.log(yvals);
                                     ra_min -= 0.5;
                                     ra_max += 0.5;
                                     dec_min -= 0.5;
@@ -570,6 +573,8 @@
                                         ns_yvals.push(ns_yval);
                                         ns_plot_seps.push(Math.pow(ns_xval,2) + Math.pow(ns_yval,2));
                                     }
+                                    console.log(ns_xvals);
+                                    console.log(ns_yvals);
                                     
                                     // sort groupNoShows and coordinates by angular separation
                                     var map = ns_plot_seps.map(function(e, i) {
@@ -674,12 +679,14 @@
                     .text("RA (deg): " + cand.ra_deg.toPrecision(7));
                 properties_div.select("p#dec_deg")
                     .text("Dec (deg): " + cand.dec_deg.toPrecision(7));
+                properties_div.select("p#db_version")
+                    .text("DB version: " + cand.db_version);
                 properties_div.select("p#header_id")
                     .text("Header ID: " + cand.header_id);
                 properties_div.select("p#cand_id")
                     .text("Candidate ID: " + cand.cand_id);
                 properties_div.select("p#sigma")
-                    .text("Prepfold Sigma: " + cand.sigma.toPrecision(3));
+                    .text("Presto Sigma: " + cand.sigma.toPrecision(3));
             }
             
             var selectCand = function(d, i) {
