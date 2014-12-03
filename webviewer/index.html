@@ -257,7 +257,7 @@
             var beamScale;
             var groupInfo;
             var groupNoShows;
-            var baseURL = "http://palfa3.physics.mcgill.ca/palfa3-apps/candidate/images/";
+            var baseURL = {1:"http://miarka.physics.mcgill.ca/palfa-apps/candidate/images/", 3:"http://palfa3.physics.mcgill.ca/palfa3-apps/candidate/images/"};
             var beamRadiusArcmin = 0.5*3.35;
             var images = new Array();
             
@@ -374,7 +374,7 @@
                         //    if (error2) { console.log(error2); }
                         //    else {
                         //        noshows = data2;
-                        showPrepfold(dataset[currentIndex][0].cand_id);
+                        showPrepfold(dataset[currentIndex][0].cand_id, dataset[currentIndex][0].db_version);
                         loadGroup(currentIndex);
                         updateText(dataset[currentIndex][0]);
                         //    }
@@ -654,9 +654,12 @@
                 }
             }
             
-            var showPrepfold = function(id) {
+            var showPrepfold = function(id, dbv) {
                 img_div.select("img").remove();
-                img_div.append("img").attr("src", baseURL + id);
+                img_div.append("img")
+                    .attr("src", baseURL[dbv] + id)
+                    .attr("width", 728)
+                    .attr("height", 543);
             }
             
             // Update properties text
@@ -688,7 +691,7 @@
                     .attr("stroke-width", 0);
                 d3.select("#candplot" + d.cand_id)
                     .attr("stroke-width", 1);
-                showPrepfold(d.cand_id);
+                showPrepfold(d.cand_id, d.db_version);
                 updateText(d);
                 currentSelection = i;
             }
@@ -697,7 +700,7 @@
 			var preload = function(cand_group) {
 				for (i = 0; i < cand_group.length; i++) {
 					images[i] = new Image();
-					images[i].src = baseURL + cand_group[i].cand_id;
+					images[i].src = baseURL[cand_group[i].db_version] + cand_group[i].cand_id;
 				}
 			}
             
