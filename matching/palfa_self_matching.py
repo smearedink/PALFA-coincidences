@@ -315,14 +315,14 @@ def create_db(out_fname="match_data.db", existing_db=None, remove_users=[]):
         new_group_ids.append(group_id)
         periods = [item['bary_period'] for item in data[ii]]
         sigmas = [item['presto_sigma'] for item in data[ii]]
+        mjds = [item['mjd'] for item in data[ii]]
         ncands = len(periods)
         for cand in data[ii]:
-            cands_entries.append((int(cand['cand_id'] % dbvfact), int(cand['cand_id'] / dbvfact), group_id, int(cand['header_id'] % dbvfact),\
-                cand['bary_period'], cand['dm'], cand['presto_sigma']))
+            cands_entries.append((int(cand['cand_id'] % dbvfact), int(cand['cand_id'] / dbvfact), group_id, int(cand['header_id'] % dbvfact), cand['bary_period'], cand['dm'], cand['presto_sigma']))
         for ns in noshows[ii]:
             noshows_entries.append((group_id, int(ns % dbvfact), int(ns / dbvfact)))
         groups_entries.append((group_id, float(np.min(periods)), float(np.max(periods)),\
-            float(np.min(sigmas)), float(np.max(sigmas)), ncands))
+            float(np.min(sigmas)), float(np.max(sigmas)), float(np.max(mjds) - np.min(mjds)), ncands))
 
     db = sql.connect(out_fname)
     cursor = db.cursor()
@@ -338,7 +338,7 @@ def create_db(out_fname="match_data.db", existing_db=None, remove_users=[]):
     
     cursor.execute("""
         CREATE TABLE groups(group_id TEXT PRIMARY KEY, min_period REAL,
-            max_period REAL, min_sigma REAL, max_sigma REAL, ncands INTEGER)
+            max_period REAL, min_sigma REAL, max_sigma REAL, time_span REAL, ncands INTEGER)
     """)
     
     cursor.execute("""
@@ -367,8 +367,8 @@ def create_db(out_fname="match_data.db", existing_db=None, remove_users=[]):
     
     cursor.executemany("""
         INSERT INTO groups(group_id, min_period, max_period, min_sigma,
-            max_sigma, ncands)
-        VALUES(?, ?, ?, ?, ?, ?)
+            max_sigma, time_span, ncands)
+        VALUES(?, ?, ?, ?, ?, ?, ?)
     """, groups_entries)
     for username in dbe_users_list:
         cursor.execute("""

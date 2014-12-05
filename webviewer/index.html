@@ -170,6 +170,7 @@
                                     <option value="period">Shortest Period (ms)</option>
                                     <option value="sigma">Highest Sigma</option>
                                     <option value="ncands">Number of Candidates</option>
+                                    <option value="time_span">Time span (days)</option>
                                 </select>
                                 between
                                 <input type="text" id="lowValue" class="queryValue">
@@ -341,6 +342,9 @@
                 } else if (queryType == "ncands") {
                     if (lowval.length > 0) { queryParams["ncands_min"] = lowval; }
                     if (highval.length > 0) { queryParams["ncands_max"] = highval; }
+                } else if (queryType == "time_span") {
+                    if (lowval.length > 0) { queryParams["time_span_min"] = lowval; }
+                    if (highval.length > 0) { queryParams["time_span_max"] = highval; }
                 }
                 if (currentUser != "select" && currentUser != null) {
                     if (document.getElementById("check0").checked) queryParams["check0"] = currentUser;

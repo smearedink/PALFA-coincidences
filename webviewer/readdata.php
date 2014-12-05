@@ -8,6 +8,8 @@ $sigma_min = $_GET['sigma_min'];
 $sigma_max = $_GET['sigma_max'];
 $ncands_min = $_GET['ncands_min'];
 $ncands_max = $_GET['ncands_max'];
+$time_span_min = $_GET['time_span_min'];
+$time_span_max = $_GET['time_span_max'];
 $check0 = $_GET['check0'];
 $check1 = $_GET['check1'];
 $check2 = $_GET['check2'];
@@ -55,6 +57,8 @@ if ($do_full_query) {
     if (!empty($sigma_max)) $query_string .= sprintf(" AND g.max_sigma <= %f", $sigma_max);
     if (!empty($ncands_min)) $query_string .= sprintf(" AND g.ncands >= %d", $ncands_min);
     if (!empty($ncands_max)) $query_string .= sprintf(" AND g.ncands <= %d", $ncands_max);
+    if (!empty($time_span_min)) $query_string .= sprintf(" AND g.time_span >= %f", $time_span_min);
+    if (!empty($time_span_max)) $query_string .= sprintf(" AND g.time_span <= %f", $time_span_max);
     $ncheck = 0;
     if (!empty($check0)) {
         if ($ncheck > 0) $query_string .= sprintf(" OR \"%s\" = 0", $check0);
