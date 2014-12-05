@@ -165,7 +165,7 @@
                 <div id="queryForm" style="width:900px; height:50px;">
                     <div id="queryFormLeft" style="width:550px; height:50px;">
                         <div id="queryFormLeftUpper" style="width:550px; height:25px;">
-                            <p>
+                            <!--<p>
                                 <select id="querySelect">
                                     <option value="period">Shortest Period (ms)</option>
                                     <option value="sigma">Highest Sigma</option>
@@ -178,7 +178,7 @@
                                 <input type="text" id="highValue" class="queryValue">
                                 <input type="button" value="Submit Query"
                                     id="submitButton" onclick="buttonClick();">
-                            </p>
+                            </p>-->
                         </div>
                         <div id="queryFormLeftLower" style="width:550px; height:25px;">
                             <p>
@@ -243,7 +243,42 @@
                 <div id="beamsList"></div>
             </div>
         </div>
-        
+        <div id="queries">
+            <p>
+                <!--<select id="querySelect">
+                    <option value="period">Shortest Period (ms)</option>
+                    <option value="sigma">Highest Sigma</option>
+                    <option value="ncands">Number of Candidates</option>
+                    <option value="time_span">Time span (days)</option>
+                </select>-->
+                Shorted Period (ms)
+                <br>between
+                <input type="text" id="period_lowValue" class="queryValue">
+                and
+                <input type="text" id="period_highValue" class="queryValue">
+                <br>
+                Highest Sigma
+                <br>between
+                <input type="text" id="sigma_lowValue" class="queryValue">
+                and
+                <input type="text" id="sigma_highValue" class="queryValue">
+                <br>
+                Number of Candidates
+                <br>between
+                <input type="text" id="ncands_lowValue" class="queryValue">
+                and
+                <input type="text" id="ncands_highValue" class="queryValue">
+                <br>
+                Time Span (days)
+                <br>between
+                <input type="text" id="time_span_lowValue" class="queryValue">
+                and
+                <input type="text" id="time_span_highValue" class="queryValue">
+                <br>
+                <input type="button" value="Submit Query" id="submitButton" onclick="buttonClick();">
+            </p>
+        </div>
+       
         <script type="text/javascript">
             var dataset = [];
             //var noshows = [];
@@ -330,22 +365,28 @@
             
             var buttonClick = function() {
                 var queryParams = {};
-                var queryType = document.getElementById("querySelect").value;
-                var lowval = document.getElementById("lowValue").value;
-                var highval = document.getElementById("highValue").value;
-                if (queryType == "period") {
-                    if (lowval.length > 0) { queryParams["p_min"] = lowval / 1000; }
-                    if (highval.length > 0) { queryParams["p_max"] = highval / 1000; }
-                } else if (queryType == "sigma") {
-                    if (lowval.length > 0) { queryParams["sigma_min"] = lowval; }
-                    if (highval.length > 0) { queryParams["sigma_max"] = highval; }
-                } else if (queryType == "ncands") {
-                    if (lowval.length > 0) { queryParams["ncands_min"] = lowval; }
-                    if (highval.length > 0) { queryParams["ncands_max"] = highval; }
-                } else if (queryType == "time_span") {
-                    if (lowval.length > 0) { queryParams["time_span_min"] = lowval; }
-                    if (highval.length > 0) { queryParams["time_span_max"] = highval; }
-                }
+                //var queryType = document.getElementById("querySelect").value;
+                var period_lowval = document.getElementById("period_lowValue").value;
+                var period_highval = document.getElementById("period_highValue").value;
+                var sigma_lowval = document.getElementById("sigma_lowValue").value;
+                var sigma_highval = document.getElementById("sigma_highValue").value;
+                var ncands_lowval = document.getElementById("ncands_lowValue").value;
+                var ncands_highval = document.getElementById("ncands_highValue").value;
+                var time_span_lowval = document.getElementById("time_span_lowValue").value;
+                var time_span_highval = document.getElementById("time_span_highValue").value;
+                //if (queryType == "period") {
+                if (period_lowval.length > 0) { queryParams["p_min"] = period_lowval / 1000; }
+                if (period_highval.length > 0) { queryParams["p_max"] = period_highval / 1000; }
+                //} else if (queryType == "sigma") {
+                if (sigma_lowval.length > 0) { queryParams["sigma_min"] = sigma_lowval; }
+                if (sigma_highval.length > 0) { queryParams["sigma_max"] = sigma_highval; }
+                //} else if (queryType == "ncands") {
+                if (ncands_lowval.length > 0) { queryParams["ncands_min"] = ncands_lowval; }
+                if (ncands_highval.length > 0) { queryParams["ncands_max"] = ncands_highval; }
+                //} else if (queryType == "time_span") {
+                if (time_span_lowval.length > 0) { queryParams["time_span_min"] = time_span_lowval; }
+                if (time_span_highval.length > 0) { queryParams["time_span_max"] = time_span_highval; }
+                //}
                 if (currentUser != "select" && currentUser != null) {
                     if (document.getElementById("check0").checked) queryParams["check0"] = currentUser;
                     if (document.getElementById("check1").checked) queryParams["check1"] = currentUser;
