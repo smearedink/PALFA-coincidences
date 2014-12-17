@@ -10,6 +10,7 @@ $ncands_min = $_GET['ncands_min'];
 $ncands_max = $_GET['ncands_max'];
 $time_span_min = $_GET['time_span_min'];
 $time_span_max = $_GET['time_span_max'];
+$only_harmonics = $_GET['only_harmonics'];
 $check0 = $_GET['check0'];
 $check1 = $_GET['check1'];
 $check2 = $_GET['check2'];
@@ -51,14 +52,15 @@ if ($do_full_query) {
     $query_string = "SELECT c.group_id, c.cand_id, c.header_id, c.db_version, c.bary_period as period, c.dm, h.mjd, c.sigma, h.ra_deg, h.dec_deg FROM cands as c LEFT JOIN headers as h ON c.header_id=h.header_id AND c.db_version=h.db_version INNER JOIN groups as g ON c.group_id=g.group_id WHERE g.ncands > 0";
 
     //$cond_count = 0;
-    if (!empty($p_min)) $query_string .= sprintf(" AND g.min_period >= %f", $p_min);
-    if (!empty($p_max)) $query_string .= sprintf(" AND g.min_period <= %f", $p_max);
-    if (!empty($sigma_min)) $query_string .= sprintf(" AND g.max_sigma >= %f", $sigma_min);
-    if (!empty($sigma_max)) $query_string .= sprintf(" AND g.max_sigma <= %f", $sigma_max);
-    if (!empty($ncands_min)) $query_string .= sprintf(" AND g.ncands >= %d", $ncands_min);
-    if (!empty($ncands_max)) $query_string .= sprintf(" AND g.ncands <= %d", $ncands_max);
-    if (!empty($time_span_min)) $query_string .= sprintf(" AND g.time_span >= %f", $time_span_min);
-    if (!empty($time_span_max)) $query_string .= sprintf(" AND g.time_span <= %f", $time_span_max);
+    if (isset($p_min)) $query_string .= sprintf(" AND g.min_period >= %f", $p_min);
+    if (isset($p_max)) $query_string .= sprintf(" AND g.min_period <= %f", $p_max);
+    if (isset($sigma_min)) $query_string .= sprintf(" AND g.max_sigma >= %f", $sigma_min);
+    if (isset($sigma_max)) $query_string .= sprintf(" AND g.max_sigma <= %f", $sigma_max);
+    if (isset($ncands_min)) $query_string .= sprintf(" AND g.ncands >= %d", $ncands_min);
+    if (isset($ncands_max)) $query_string .= sprintf(" AND g.ncands <= %d", $ncands_max);
+    if (isset($time_span_min)) $query_string .= sprintf(" AND g.time_span >= %f", $time_span_min);
+    if (isset($time_span_max)) $query_string .= sprintf(" AND g.time_span <= %f", $time_span_max);
+    if (isset($only_harmonics)) $query_string .= sprintf(" AND g.only_harmonics = %d", $only_harmonics);
     $ncheck = 0;
     if (!empty($check0)) {
         if ($ncheck > 0) $query_string .= sprintf(" OR \"%s\" = 0", $check0);

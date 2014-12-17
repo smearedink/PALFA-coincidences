@@ -275,6 +275,8 @@
                 and
                 <input type="text" id="time_span_highValue" class="queryValue">
                 <br>
+                <input type="checkbox" id="only_harmonics">Exclude groups that only have harmonic matches
+                <br>
                 <input type="button" value="Submit Query" id="submitButton" onclick="buttonClick();">
             </p>
         </div>
@@ -387,6 +389,7 @@
                 if (time_span_lowval.length > 0) { queryParams["time_span_min"] = time_span_lowval; }
                 if (time_span_highval.length > 0) { queryParams["time_span_max"] = time_span_highval; }
                 //}
+                if (document.getElementById("only_harmonics").checked) queryParams["only_harmonics"] = 0;
                 if (currentUser != "select" && currentUser != null) {
                     if (document.getElementById("check0").checked) queryParams["check0"] = currentUser;
                     if (document.getElementById("check1").checked) queryParams["check1"] = currentUser;
@@ -411,6 +414,7 @@
                         php_call += param + "=" + queryParams[param] + "&";
                         //php_call_noshows += param + "=" + queryParams[param] + "&";
                     }
+                    console.log(php_call);
                 }
                 d3.json(php_call, function(error, data) {
                     if (error) { console.log(error); }
@@ -641,7 +645,7 @@
                                         if (error) { console.log(error); }
                                         else {
                                             nearbyPulsars = psr_data;
-                                            console.log(nearbyPulsars);
+                                            // console.log(nearbyPulsars);
 
                                             // get pulsar plot positions
                                             var psr_xvals = [];

@@ -207,7 +207,7 @@ if os.path.exists(files_basedir+"/"+run_files_folder+"/"+fixed_groups_fname):
     with open(files_basedir+"/"+run_files_folder+"/"+fixed_groups_fname, 'rb') as f:
         fixed_groups = cPickle.load(f)
 else:
-    print "Removing multi-fits-file observation matches and beam 7 WAPP cases..."
+    print "Removing multi-fits-file observation matches and beam 7 WAPP cases and reprocesses that have different header ids..."
     fixed_groups = []
     for ii in range(len(groups)):
         #group_idx = [np.where(cands2comp['cand_id'] == cand_id)[0][0] for cand_id in groups[ii]]
@@ -218,10 +218,17 @@ else:
         # a goofy workaround for the fact that np.unique's mergesort won't
         # work with an array of objects or tuples JUST in numpy 1.6.2
         # (the arbitrary numbers here are just biggish primes)
-        fixed_group_idx = group_cands_idx[np.unique([(a[0]*271+a[1])*3319+a[2] for a in cands2comp[group_cands_idx][['obs_id', 'beam_id', 'db_version']]], return_index=True)[1]]
+        ras = cands2comp[group_cands_idx]['ra_deg']
+        decs = cands2comp[group_cands_idx]['dec_deg']
+        mjds = cands2comp[group_cands_idx]['mjd']
+        unique_idx = np.unique([(a[0]*271+a[1])*3319+a[2] for a in zip(ras.round(2), decs.round(2), mjds.round(4))], return_index=True)[1]
+        fixed_group_idx = group_cands_idx[unique_idx]
+        #fixed_group_idx = group_cands_idx[np.unique([(a[0]*271+a[1])*3319+a[2] for a in cands2comp[group_cands_idx][['obs_id', 'beam_id', 'db_version']]], return_index=True)[1]]
+        ### the version above that checks ra, dec and mjd should account for the beam 7 stuff
         #beam7_idx = group_cands_idx[np.where(cands2comp[group_idx] != 7)[0]]
-        beam7_idx = group_cands_idx[cands2comp['beam_id'][group_cands_idx] == 7]
-        fixed_group = set(cands2comp['cand_id'][fixed_group_idx]) - set(cands2comp['cand_id'][beam7_idx])
+        #beam7_idx = group_cands_idx[cands2comp['beam_id'][group_cands_idx] == 7]
+        #fixed_group = set(cands2comp['cand_id'][fixed_group_idx]) - set(cands2comp['cand_id'][beam7_idx])
+        fixed_group = set(cands2comp['cand_id'][fixed_group_idx])
         if len(fixed_group) > 1:
             fixed_groups.append(fixed_group)
     #groups = np.array(fixed_groups)
@@ -315,6 +322,8 @@ def create_db(out_fname="match_data.db", existing_db=None, remove_users=[]):
         new_group_ids.append(group_id)
         periods = [item['bary_period'] for item in data[ii]]
         sigmas = [item['presto_sigma'] for item in data[ii]]
+        # This should be 'True' only if none of the members of the group have the same period (ie, there are only harmonic matches)
+        only_harmonics = np.count_nonzero(np.abs((np.matrix(periods) / np.matrix(periods).T) - 1.) < 0.001) <= len(periods)
         mjds = [item['mjd'] for item in data[ii]]
         ncands = len(periods)
         for cand in data[ii]:
@@ -322,7 +331,7 @@ def create_db(out_fname="match_data.db", existing_db=None, remove_users=[]):
         for ns in noshows[ii]:
             noshows_entries.append((group_id, int(ns % dbvfact), int(ns / dbvfact)))
         groups_entries.append((group_id, float(np.min(periods)), float(np.max(periods)),\
-            float(np.min(sigmas)), float(np.max(sigmas)), float(np.max(mjds) - np.min(mjds)), ncands))
+            float(np.min(sigmas)), float(np.max(sigmas)), float(np.max(mjds) - np.min(mjds)), ncands, int(only_harmonics)))
 
     db = sql.connect(out_fname)
     cursor = db.cursor()
@@ -338,7 +347,8 @@ def create_db(out_fname="match_data.db", existing_db=None, remove_users=[]):
     
     cursor.execute("""
         CREATE TABLE groups(group_id TEXT PRIMARY KEY, min_period REAL,
-            max_period REAL, min_sigma REAL, max_sigma REAL, time_span REAL, ncands INTEGER)
+            max_period REAL, min_sigma REAL, max_sigma REAL, time_span REAL,
+            ncands INTEGER, only_harmonics INTEGER)
     """)
     
     cursor.execute("""
@@ -367,10 +377,11 @@ def create_db(out_fname="match_data.db", existing_db=None, remove_users=[]):
     
     cursor.executemany("""
         INSERT INTO groups(group_id, min_period, max_period, min_sigma,
-            max_sigma, time_span, ncands)
-        VALUES(?, ?, ?, ?, ?, ?, ?)
+            max_sigma, time_span, ncands, only_harmonics)
+        VALUES(?, ?, ?, ?, ?, ?, ?, ?)
     """, groups_entries)
     for username in dbe_users_list:
+        print "Adding %s to new db" % username
         cursor.execute("""
             ALTER TABLE groups ADD COLUMN "%s" INTEGER DEFAULT 0
         """ % username)
