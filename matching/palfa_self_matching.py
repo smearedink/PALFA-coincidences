@@ -8,7 +8,7 @@ import sqlite3 as sql
 
 files_basedir = "/data/lore/madsense/PALFA/coincidence_files"
 
-all_mock_fname = "allcands_20141118_sortbyP.npy"
+all_mock_fname = "allcands_20150105_sortbyP.npy"
 all_wapp_fname = "allcands_wapp_sortbyP.npy"
 
 max_sep = 3.35 * 1.5 # arcmin
@@ -61,6 +61,8 @@ else:
     all_palfa = np.concatenate((all_palfa3[["cand_id", "header_id", "obs_id", "beam_id", "proc_date", "topo_period", "bary_period", "dm", "presto_sigma", "ra_deg", "dec_deg", "mjd", "obs_time", "db_version"]], all_wapp))
     print "Freeing memory..."
     del all_palfa3, all_wapp
+    print "Removing \"beam 7\" candidates..."
+    all_palfa = all_palfa[all_palfa['beam_id'] != 7]
     print "Updating header_id and cand_id values..."
     all_palfa['header_id'] += dbvfact*all_palfa['db_version']
     all_palfa['cand_id'] += dbvfact*all_palfa['db_version']
@@ -165,15 +167,11 @@ else:
                     # A conservative range that should allow for fast binary doppler variation
                     #dP_max = this_P * 0.001
                     
-                    ### slower or faster than commented out version?  should check
-                    # new one got to 1735 headers in 5.0 minutes
-                    # old one got to 757 headers in 5.1 minutes (I wasn't paying attention)
-                    # seems like the new one is better then
-                    
                     match_idx = np.zeros(len(those_cands), dtype=bool)
                     for harm in [1./thing for thing in range(2, max_harm+1)][::-1] + range(1, max_harm+1):
                         P_match_idx = np.abs(those_cands['bary_period'] - this_P * harm) < dP_max * harm
-                        DM_match_idx = np.abs(those_cands['dm'] - this_DM) < min(ddm(min(this_P*harm, this_P)), this_DM*0.1)
+                        #DM_match_idx = np.abs(those_cands['dm'] - this_DM) < min(ddm(min(this_P*harm, this_P)), this_DM*0.1)
+                        DM_match_idx = np.abs(those_cands['dm'] - this_DM) < ddm(this_P*harm)
                         match_idx += (P_match_idx * DM_match_idx)
                     this_group = set(those_cands['cand_id'][match_idx]).union({these_cands['cand_id'][ii]})
                     if len(this_group) > 1:
