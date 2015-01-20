@@ -10,6 +10,8 @@ $ncands_min = $_GET['ncands_min'];
 $ncands_max = $_GET['ncands_max'];
 $time_span_min = $_GET['time_span_min'];
 $time_span_max = $_GET['time_span_max'];
+$match_prob_min = $_GET['match_prob_min'];
+$match_prob_max = $_GET['match_prob_max'];
 $only_harmonics = $_GET['only_harmonics'];
 $check0 = $_GET['check0'];
 $check1 = $_GET['check1'];
@@ -24,7 +26,7 @@ if (!empty ($group_id)) {
     $do_full_query = false;
 
     #$query_string = sprintf("SELECT c.group_id, c.cand_id, c.header_id, c.bary_period as period, c.dm, h.mjd, c.sigma, h.ra_deg, h.dec_deg FROM cands as c LEFT JOIN headers as h ON c.header_id=h.header_id INNER JOIN groups as g ON c.group_id=g.group_id WHERE c.group_id = %s", $group_id);
-    $query_string = sprintf("SELECT c.group_id, c.cand_id, c.header_id, c.db_version, c.bary_period as period, c.dm, h.mjd, c.sigma, h.ra_deg, h.dec_deg FROM cands as c LEFT JOIN headers as h ON c.header_id=h.header_id AND c.db_version=h.db_version WHERE c.group_id = %s", $group_id);
+    $query_string = sprintf("SELECT c.group_id, c.cand_id, c.header_id, c.db_version, c.bary_period as period, c.dm, h.mjd, c.sigma, h.ra_deg, h.dec_deg, c.match_prob FROM cands as c LEFT JOIN headers as h ON c.header_id=h.header_id AND c.db_version=h.db_version WHERE c.group_id = %s", $group_id);
     
     $stmt = $db->prepare($query_string);
     $result = $stmt->execute();
@@ -49,7 +51,7 @@ if (!empty ($group_id)) {
 }
 
 if ($do_full_query) {
-    $query_string = "SELECT c.group_id, c.cand_id, c.header_id, c.db_version, c.bary_period as period, c.dm, h.mjd, c.sigma, h.ra_deg, h.dec_deg FROM cands as c LEFT JOIN headers as h ON c.header_id=h.header_id AND c.db_version=h.db_version INNER JOIN groups as g ON c.group_id=g.group_id WHERE g.ncands > 0";
+    $query_string = "SELECT c.group_id, c.cand_id, c.header_id, c.db_version, c.bary_period as period, c.dm, h.mjd, c.sigma, h.ra_deg, h.dec_deg, c.match_prob FROM cands as c LEFT JOIN headers as h ON c.header_id=h.header_id AND c.db_version=h.db_version INNER JOIN groups as g ON c.group_id=g.group_id WHERE g.ncands > 0";
 
     //$cond_count = 0;
     if (isset($p_min)) $query_string .= sprintf(" AND g.min_period >= %f", $p_min);
@@ -60,6 +62,8 @@ if ($do_full_query) {
     if (isset($ncands_max)) $query_string .= sprintf(" AND g.ncands <= %d", $ncands_max);
     if (isset($time_span_min)) $query_string .= sprintf(" AND g.time_span >= %f", $time_span_min);
     if (isset($time_span_max)) $query_string .= sprintf(" AND g.time_span <= %f", $time_span_max);
+    if (isset($match_prob_min)) $query_string .= sprintf(" AND g.min_match_prob >= %f", $match_prob_min);
+    if (isset($match_prob_max)) $query_string .= sprintf(" AND g.min_match_prob <= %f", $match_prob_max);
     if (isset($only_harmonics)) $query_string .= sprintf(" AND g.only_harmonics = %d", $only_harmonics);
     $ncheck = 0;
     if (!empty($check0)) {

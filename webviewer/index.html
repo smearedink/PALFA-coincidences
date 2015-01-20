@@ -92,7 +92,7 @@
             
             div#beamsList {
                 width: 170px;
-                height: 206px;
+                height: 192px;
                 /*padding-top: 8px;*/
             }
             
@@ -112,7 +112,7 @@
             
             div#propertiesList {
                 width: 154px;
-                height: 134px;
+                height: 148px;
                 padding: 8px;
                 margin-bottom: 10px;
                 background-color: rgb(210,225,240);
@@ -251,7 +251,7 @@
                     <option value="ncands">Number of Candidates</option>
                     <option value="time_span">Time span (days)</option>
                 </select>-->
-                Shorted Period (ms)
+                Shortest Period (ms)
                 <br>between
                 <input type="text" id="period_lowValue" class="queryValue">
                 and
@@ -274,6 +274,12 @@
                 <input type="text" id="time_span_lowValue" class="queryValue">
                 and
                 <input type="text" id="time_span_highValue" class="queryValue">
+                <br>
+                Minimum Match Probability
+                <br>between
+                <input type="text" id="match_prob_lowValue" class="queryValue">
+                and
+                <input type="text" id="match_prob_highValue" class="queryValue">
                 <br>
                 <input type="checkbox" id="only_harmonics">Exclude groups that only have harmonic matches
                 <br>
@@ -330,6 +336,7 @@
             properties_div.append("p").attr("id", "header_id").classed("propList", true);
             properties_div.append("p").attr("id", "cand_id").classed("propList", true);
             properties_div.append("p").attr("id", "sigma").classed("propList", true);
+            properties_div.append("p").attr("id", "match_prob").classed("propList", true);
                         
             var groupCount = d3.select("body").select("div#groupCount")
             groupCount.append("img")
@@ -376,6 +383,8 @@
                 var ncands_highval = document.getElementById("ncands_highValue").value;
                 var time_span_lowval = document.getElementById("time_span_lowValue").value;
                 var time_span_highval = document.getElementById("time_span_highValue").value;
+                var match_prob_lowval = document.getElementById("match_prob_lowValue").value;
+                var match_prob_highval = document.getElementById("match_prob_highValue").value;
                 //if (queryType == "period") {
                 if (period_lowval.length > 0) { queryParams["p_min"] = period_lowval / 1000; }
                 if (period_highval.length > 0) { queryParams["p_max"] = period_highval / 1000; }
@@ -389,6 +398,8 @@
                 if (time_span_lowval.length > 0) { queryParams["time_span_min"] = time_span_lowval; }
                 if (time_span_highval.length > 0) { queryParams["time_span_max"] = time_span_highval; }
                 //}
+                if (match_prob_lowval.length > 0) { queryParams["match_prob_min"] = match_prob_lowval; }
+                if (match_prob_highval.length > 0) { queryParams["match_prob_max"] = match_prob_highval; }
                 if (document.getElementById("only_harmonics").checked) queryParams["only_harmonics"] = 0;
                 if (currentUser != "select" && currentUser != null) {
                     if (document.getElementById("check0").checked) queryParams["check0"] = currentUser;
@@ -732,6 +743,8 @@
                     .text("Candidate ID: " + cand.cand_id);
                 properties_div.select("p#sigma")
                     .text("Presto Sigma: " + cand.sigma.toPrecision(3));
+                properties_div.select("p#match_prob")
+                    .text("Match Prob: " + cand.match_prob.toPrecision(5));
             }
             
             var selectCand = function(d, i) {

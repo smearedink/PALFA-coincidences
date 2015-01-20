@@ -38,6 +38,7 @@ cands_by_header_fname = "cands_by_header.pkl"
 groups_fname = "groups.pkl"
 fixed_groups_fname = "fixed_groups.pkl"
 fixed_groups_noshows_fname = "noshows.pkl"
+probs_fname = "probs.pkl"
 
 if not os.path.exists(files_basedir+"/"+run_files_folder):
     os.makedirs(files_basedir+"/"+run_files_folder)
@@ -255,6 +256,42 @@ else:
         cPickle.dump(noshows, f, protocol=cPickle.HIGHEST_PROTOCOL)
     print "Done."
 
+if os.path.exists(files_basedir+"/"+run_files_folder+"/"+probs_fname):
+    with open(files_basedir+"/"+run_files_folder+"/"+probs_fname, 'rb') as f:
+        probs = cPickle.load(f)
+else:
+    print "Calculating probabilities..."
+    try: all_palfa3
+    except: all_palfa3 = np.load(files_basedir+"/"+all_mock_fname)
+    num_cands_total = len(all_palfa3)
+    p3_p = all_palfa3['bary_period']
+    p3_dm = all_palfa3['dm']
+    max_cands_per_beam = 200
+    probs = {}
+    for ii, group in enumerate(fixed_groups):
+        for cand_id in group:
+            c2c_idx = cands2comp_id2idx[cand_id]
+            cand_p = cands2comp['bary_period'][c2c_idx]
+            cand_dm = cands2comp['dm'][c2c_idx]
+            cand_header_id = cands2comp['header_id'][c2c_idx]
+            cand_obs_time = cands2comp['obs_time'][c2c_idx]
+            num_neighbours = len(neighbours[cand_header_id])
+            dP_max = cand_p**2 / cand_obs_time
+            dDM_max = ddm(cand_p)
+            dm_set = p3_dm[np.searchsorted(p3_p, cand_p-dP_max):np.searchsorted(p3_p, cand_p+dP_max)]
+            num_p3_matches = np.count_nonzero((dm_set > cand_dm-dDM_max)*(dm_set < cand_dm+dDM_max))
+            #num_p3_matches = np.count_nonzero((p3_p > cand_p-dP_max) * (p3_p < cand_p+dP_max) * (p3_dm > cand_dm-dDM_max) * (p3_dm < cand_dm+dDM_max))
+            prob1 = float(num_p3_matches) / num_cands_total
+            rand_match_prob = 1. - pow(1.-prob1, max_cands_per_beam*num_neighbours)
+            probs[cand_id] = rand_match_prob
+        sys.stdout.write("\rFinished %d of %d groups" % (ii+1, len(fixed_groups)))
+        sys.stdout.flush()
+    sys.stdout.write("\n")
+    sys.stdout.flush()
+    with open(files_basedir+"/"+run_files_folder+"/"+probs_fname, 'wb') as f:
+        cPickle.dump(probs, f, protocol=cPickle.HIGHEST_PROTOCOL)
+    print "Done."
+
 ### NOW THE DATABASE FUNCTIONS ###
 
 def generate_group_id(cand_ids):
@@ -324,19 +361,26 @@ def create_db(out_fname="match_data.db", existing_db=None, remove_users=[]):
         only_harmonics = np.count_nonzero(np.abs((np.matrix(periods) / np.matrix(periods).T) - 1.) < 0.001) <= len(periods)
         mjds = [item['mjd'] for item in data[ii]]
         ncands = len(periods)
+        # initialize these at values that are guaranteed to be updated
+        min_match_prob = 1.1
+        max_match_prob = -0.1
         for cand in data[ii]:
-            cands_entries.append((int(cand['cand_id'] % dbvfact), int(cand['cand_id'] / dbvfact), group_id, int(cand['header_id'] % dbvfact), cand['bary_period'], cand['dm'], cand['presto_sigma']))
+            cands_entries.append((int(cand['cand_id'] % dbvfact), int(cand['cand_id'] / dbvfact), group_id, int(cand['header_id'] % dbvfact), cand['bary_period'], cand['dm'], cand['presto_sigma'], probs[cand['cand_id']]))
+            if probs[cand['cand_id']] < min_match_prob:
+                min_match_prob = probs[cand['cand_id']]
+            if probs[cand['cand_id']] > max_match_prob:
+                max_match_prob = probs[cand['cand_id']]
         for ns in noshows[ii]:
             noshows_entries.append((group_id, int(ns % dbvfact), int(ns / dbvfact)))
         groups_entries.append((group_id, float(np.min(periods)), float(np.max(periods)),\
-            float(np.min(sigmas)), float(np.max(sigmas)), float(np.max(mjds) - np.min(mjds)), ncands, int(only_harmonics)))
+            float(np.min(sigmas)), float(np.max(sigmas)), min_match_prob, max_match_prob, float(np.max(mjds) - np.min(mjds)), ncands, int(only_harmonics)))
 
     db = sql.connect(out_fname)
     cursor = db.cursor()
     
     cursor.execute("""
         CREATE TABLE cands(cand_id INTEGER, db_version INTEGER, group_id TEXT,
-            header_id INTEGER, bary_period REAL, dm REAL, sigma REAL)
+            header_id INTEGER, bary_period REAL, dm REAL, sigma REAL, match_prob REAL)
     """)
     
     cursor.execute("""
@@ -345,7 +389,8 @@ def create_db(out_fname="match_data.db", existing_db=None, remove_users=[]):
     
     cursor.execute("""
         CREATE TABLE groups(group_id TEXT PRIMARY KEY, min_period REAL,
-            max_period REAL, min_sigma REAL, max_sigma REAL, time_span REAL,
+            max_period REAL, min_sigma REAL, max_sigma REAL,
+            min_match_prob REAL, max_match_prob REAL, time_span REAL,
             ncands INTEGER, only_harmonics INTEGER)
     """)
     
@@ -364,8 +409,8 @@ def create_db(out_fname="match_data.db", existing_db=None, remove_users=[]):
     """)
     
     cursor.executemany("""
-        INSERT INTO cands(cand_id, db_version, group_id, header_id, bary_period, dm, sigma)
-        VALUES(?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO cands(cand_id, db_version, group_id, header_id, bary_period, dm, sigma, match_prob)
+        VALUES(?, ?, ?, ?, ?, ?, ?, ?)
     """, cands_entries)
     
     cursor.executemany("""
@@ -375,8 +420,8 @@ def create_db(out_fname="match_data.db", existing_db=None, remove_users=[]):
     
     cursor.executemany("""
         INSERT INTO groups(group_id, min_period, max_period, min_sigma,
-            max_sigma, time_span, ncands, only_harmonics)
-        VALUES(?, ?, ?, ?, ?, ?, ?, ?)
+            max_sigma, min_match_prob, max_match_prob, time_span, ncands, only_harmonics)
+        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, groups_entries)
     for username in dbe_users_list:
         print "Adding %s to new db" % username
@@ -408,19 +453,29 @@ def create_db(out_fname="match_data.db", existing_db=None, remove_users=[]):
     if len(dbe_groups_dict):                
         cursor.execute("select * from groups").description
         col_names = [item[0] for item in cursor.description]
-        col_names_str = str(tuple(col_names)) #.replace("'", "")
-        new_entries = []
+        #col_names_str = str(tuple(col_names)) #.replace("'", "")
+        #new_entries = []
         for key in dbe_groups_dict:
             group_info = dbe_groups_dict[key]
             group_info['ncands'] = 0 # so we know this is from before
             new_entry = []
+            these_col_names = list(col_names)
             for col_name in col_names:
-                new_entry.append(group_info[col_name])
-            new_entries.append(tuple(new_entry))
-        cursor.executemany("""
-            INSERT INTO groups%s
-            VALUES%s
-        """ % (col_names_str, str(tuple(['?']*len(col_names))).replace("'","")), new_entries)
+                try:
+                    new_entry.append(group_info[col_name])
+                except:
+                    these_col_names.remove(col_name)
+                col_names_str = str(tuple(these_col_names))
+            cursor.execute("""
+                INSERT INTO groups%s
+                VALUES%s
+            """ % (col_names_str, str(tuple(['?']*len(these_col_names))).replace("'","")), tuple(new_entry))
+                    #print "No column named %s in group--assuming it's new in this DB version." % col_name
+            #new_entries.append(tuple(new_entry))
+        #cursor.executemany("""
+        #    INSERT INTO groups%s
+        #    VALUES%s
+        #""" % (col_names_str, str(tuple(['?']*len(col_names))).replace("'","")), new_entries)
         
     db.commit()
     db.close()
